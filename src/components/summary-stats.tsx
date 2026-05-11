@@ -39,11 +39,11 @@ export default function SummaryStats({ trades }: SummaryStatsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
       {stats.map((s) => (
-        <div key={s.label} className={`bg-bg3 border border-border rounded p-3 border-t-2 ${s.color}`}>
-          <div className="text-[8px] tracking-[1.5px] uppercase text-muted mb-1">{s.label}</div>
-          <div className={`font-heading font-bold text-[20px] leading-none ${
+        <div key={s.label} className={`bg-bg3 border border-border rounded-lg p-5 border-t-2 ${s.color} shadow-sm`}>
+          <div className="text-[11px] tracking-widest uppercase text-muted mb-2 font-semibold font-sans">{s.label}</div>
+          <div className={`font-heading font-bold text-3xl leading-none tracking-tight ${
             "positive" in s ? (s.positive ? "text-teal" : "text-red") : "text-text"
           }`}>
             {s.value}

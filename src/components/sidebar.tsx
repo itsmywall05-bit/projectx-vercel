@@ -1,109 +1,72 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const NAV_ITEMS = [
-  { label: "MODULES", type: "header" as const },
-  { href: "/trade-log", icon: "▣", label: "Trade Log" },
-  { href: "/products", icon: "◑", label: "Products" },
-  { label: "FUTURE", type: "header" as const },
-  { href: "#", icon: "◬", label: "Risk Console", disabled: true },
-  { href: "#", icon: "◈", label: "Performance Lab", disabled: true },
-  { href: "#", icon: "◧", label: "Strategy Vault", disabled: true },
-  { href: "#", icon: "◐", label: "Playbook", disabled: true },
-];
-
 export default function Sidebar() {
-  const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
+  const isActive = (path: string) => {
+    if (path === "/" && pathname === "/") return "active";
+    if (path !== "/" && pathname.startsWith(path)) return "active";
+    return "";
+  };
+
   return (
-    <>
-      {/* Mobile hamburger */}
-      <button
-        onClick={() => setOpen(true)}
-        className="fixed top-3 left-3 z-50 md:hidden w-8 h-8 flex items-center justify-center rounded border border-border2 bg-bg2 text-muted hover:text-text"
-        aria-label="Open menu"
-      >
-        ☰
-      </button>
+    <div className="sidebar">
+      <div className="logo-wrap">
+        <div className="logo">project<span className="logo-x">X</span></div>
+        <div className="logo-v">V 0.3 — RULES LIVE</div>
+      </div>
+      
+      <nav className="nav">
+        <div className="nl">Core</div>
+        <Link href="/" className={`ni ${isActive("/")}`}>
+          <span className="ni-ico">◈</span><span className="ni-txt">Overview</span>
+        </Link>
+        <div className="ni"><span className="ni-ico">⟳</span><span className="ni-txt">Mind Feed</span><span className="nb live">live</span></div>
+        <div className="ni"><span className="ni-ico">◫</span><span className="ni-txt">The Map</span></div>
 
-      {/* Overlay */}
-      {open && (
-        <div
-          className="fixed inset-0 z-40 bg-black/60 md:hidden"
-          onClick={() => setOpen(false)}
-        />
-      )}
+        <div className="nl">Plan</div>
+        <div className="ni"><span className="ni-ico">◎</span><span className="ni-txt">Trading Plan</span><span className="nb new">updated</span></div>
+        <div className="ni"><span className="ni-ico">◰</span><span className="ni-txt">General Plan</span></div>
 
-      {/* Sidebar */}
-      <aside
-        className={`fixed md:static z-50 top-0 left-0 h-screen w-[214px] min-w-[214px] bg-bg2 border-r border-border flex flex-col transition-transform duration-200 ${
-          open ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-        }`}
-      >
-        {/* Logo */}
-        <div className="px-[18px] pt-5 pb-4 border-b border-border">
-          <div className="font-heading font-[800] text-[18px] tracking-tight text-accent">
-            project<span className="text-text2 font-normal">X</span>
-          </div>
-          <div className="text-[8.5px] tracking-[2px] text-muted mt-1">
-            MVP — TRADE LOG
-          </div>
-        </div>
+        <div className="nl">Instruments</div>
+        <Link href="/products" className={`ni ${isActive("/products")}`}>
+          <span className="ni-ico">◑</span><span className="ni-txt">Instruments</span><span className="nb new">new</span>
+        </Link>
 
-        {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-2">
-          {NAV_ITEMS.map((item, i) => {
-            if (item.type === "header") {
-              return (
-                <div
-                  key={i}
-                  className="text-[8px] tracking-[2px] uppercase text-muted2 px-[18px] pt-3 pb-1"
-                >
-                  {item.label}
-                </div>
-              );
-            }
+        <div className="nl">Strategy</div>
+        <div className="ni"><span className="ni-ico">◧</span><span className="ni-txt">Strategy Vault</span><span className="nb new">2 live</span></div>
+        <div className="ni"><span className="ni-ico">◐</span><span className="ni-txt">Playbook</span><span className="nb new">1 rule</span></div>
+        <div className="ni"><span className="ni-ico">◉</span><span className="ni-txt">Backtesting</span><span className="nb new">2 shells</span></div>
 
-            const active = pathname === item.href;
-            const disabled = "disabled" in item && item.disabled;
+        <div className="nl">Modules</div>
+        <Link href="/trade-log" className={`ni ${isActive("/trade-log")}`}>
+          <span className="ni-ico">▣</span><span className="ni-txt">Trade Log</span>
+        </Link>
+        <div className="ni"><span className="ni-ico">◬</span><span className="ni-txt">Risk Console</span></div>
+        <div className="ni"><span className="ni-ico">◈</span><span className="ni-txt">Performance Lab</span></div>
+        <div className="ni"><span className="ni-ico">◒</span><span className="ni-txt">Market Context</span></div>
+        <div className="ni"><span className="ni-ico">◓</span><span className="ni-txt">Watchlist Engine</span></div>
+        <div className="ni"><span className="ni-ico">◷</span><span className="ni-txt">Feedback Loop</span></div>
 
-            return (
-              <Link
-                key={item.href}
-                href={disabled ? "#" : item.href!}
-                onClick={() => setOpen(false)}
-                className={`flex items-center gap-2 px-[18px] py-[7px] text-[11px] border-l-2 transition-all ${
-                  active
-                    ? "text-accent border-l-accent bg-accent/[0.06]"
-                    : disabled
-                    ? "text-muted2 border-l-transparent cursor-not-allowed"
-                    : "text-muted border-l-transparent hover:text-text hover:bg-accent/[0.04]"
-                }`}
-              >
-                <span className="w-[14px] text-center text-[12px]">{item.icon}</span>
-                <span className="flex-1">{item.label}</span>
-                {disabled && (
-                  <span className="text-[8px] px-[5px] py-[1px] rounded-full bg-border2 text-muted">
-                    soon
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </nav>
+        <div className="nl">Intelligence</div>
+        <div className="ni"><span className="ni-ico">◍</span><span className="ni-txt">Side Brain</span></div>
+        <div className="ni"><span className="ni-ico">◔</span><span className="ni-txt">Learning Engine</span></div>
 
-        {/* Footer */}
-        <div className="px-[18px] py-3 border-t border-border">
-          <div className="flex items-center gap-[6px] text-[9.5px] text-muted">
-            <div className="w-[5px] h-[5px] rounded-full bg-teal animate-pulse" />
-            <span>v0.1 · mvp</span>
-          </div>
-        </div>
-      </aside>
-    </>
+        <div className="nl">Data</div>
+        <div className="ni"><span className="ni-ico">◫</span><span className="ni-txt">Data Connectivity</span><span className="nb warn">excel</span></div>
+
+        <div className="nl">System</div>
+        <div className="ni"><span className="ni-ico">⊡</span><span className="ni-txt">Deferred Queue</span><span className="nb warn">4</span></div>
+        <div className="ni"><span className="ni-ico">⊞</span><span className="ni-txt">Feature Backlog</span><span className="nb">12</span></div>
+        <div className="ni"><span className="ni-ico">◪</span><span className="ni-txt">Blueprint</span></div>
+      </nav>
+
+      <div className="sf">
+        <div className="sys"><div className="pulse"></div><span>v0.3 · rules live</span></div>
+      </div>
+    </div>
   );
 }
