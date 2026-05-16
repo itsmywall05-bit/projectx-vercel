@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import TradeForm from "@/components/trade-form";
 import TradeTable from "@/components/trade-table";
 import SummaryStats from "@/components/summary-stats";
+import LiveRiskEngine from "@/components/live-risk-engine";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Trade = any;
@@ -45,6 +46,8 @@ export default function TradeLogPage() {
             ...trade,
             entry_price: trade.entry_price?.toString() || "",
             exit_price: trade.exit_price?.toString() || "",
+            sl_price: trade.sl_price?.toString() || "",
+            risk_lt: trade.risk_lt?.toString() || "",
             size_contracts: trade.size_contracts?.toString() || "1",
             entry_time: trade.entry_time ? new Date(trade.entry_time).toTimeString().slice(0, 5) : "",
             exit_time: trade.exit_time ? new Date(trade.exit_time).toTimeString().slice(0, 5) : "",
@@ -104,6 +107,8 @@ export default function TradeLogPage() {
                 </div>
 
                 <SummaryStats trades={trades} />
+
+                {!loading && <LiveRiskEngine trades={trades} />}
 
                 {showForm && (
                     <TradeForm

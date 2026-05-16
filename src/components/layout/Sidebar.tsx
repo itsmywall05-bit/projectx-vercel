@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSidebar } from "./SidebarContext";
 
 type BadgeKind = "live" | "new" | "warn" | "red" | "default";
 
@@ -37,13 +38,13 @@ const NAV: NavSection[] = [
         title: "Instruments",
         items: [
             { href: "/instruments", icon: "◑", label: "Instruments", badge: { text: "new", kind: "new" } },
+            { href: "/instruments/taxonomy", icon: "◐", label: "Taxonomy" },
         ],
     },
     {
         title: "Strategy",
         items: [
             { href: "/strategy-vault", icon: "◧", label: "Strategy Vault", badge: { text: "2 live", kind: "new" } },
-            { href: "/strategy-taxonomy", icon: "◐", label: "Strategy Taxonomy" },
             { href: "/playbook", icon: "◐", label: "Playbook", badge: { text: "1 rule", kind: "new" } },
             { href: "/backtest", icon: "◉", label: "Backtesting", badge: { text: "2 shells", kind: "new" } },
         ],
@@ -52,7 +53,6 @@ const NAV: NavSection[] = [
         title: "Modules",
         items: [
             { href: "/trade-log", icon: "▣", label: "Trade Log" },
-            { href: "/trade-log-legacy", icon: "▦", label: "Trade Log (Legacy)", badge: { text: "v0.1", kind: "default" } },
             { href: "/products", icon: "◭", label: "Products" },
             { href: "/risk-console", icon: "◬", label: "Risk Console" },
             { href: "/performance", icon: "◈", label: "Performance Lab" },
@@ -96,25 +96,44 @@ function badgeClass(kind?: BadgeKind): string {
 
 export default function Sidebar() {
     const pathname = usePathname();
+    const { isOpen, setIsOpen } = useSidebar();
 
     return (
-        <aside
-            style={{
-                width: "var(--sidebar-w)",
-                minWidth: "var(--sidebar-w)",
-                background: "var(--bg2)",
-                borderRight: "1px solid var(--border)",
-                display: "flex",
-                flexDirection: "column",
-                height: "100vh",
-            }}
-        >
-            <div style={{ padding: "20px 18px 15px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
-                <div style={{ fontFamily: "var(--font-syne)", fontWeight: 800, fontSize: 18, letterSpacing: "-.5px", color: "var(--accent)" }}>
-                    project<span style={{ color: "var(--text2)", fontWeight: 400 }}>X</span>
+        <>
+            {isOpen && (
+                <div 
+                    className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm"
+                    onClick={() => setIsOpen(false)}
+                />
+            )}
+            <aside
+                className={`fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${
+                    isOpen ? "translate-x-0" : "-translate-x-full"
+                }`}
+                style={{
+                    width: "var(--sidebar-w)",
+                    minWidth: "var(--sidebar-w)",
+                    background: "var(--bg2)",
+                    borderRight: "1px solid var(--border)",
+                    display: "flex",
+                    flexDirection: "column",
+                    height: "100vh",
+                }}
+            >
+                <div style={{ padding: "20px 18px 15px", borderBottom: "1px solid var(--border)", flexShrink: 0, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                        <div style={{ fontFamily: "var(--font-syne)", fontWeight: 800, fontSize: 18, letterSpacing: "-.5px", color: "var(--accent)" }}>
+                            project<span style={{ color: "var(--text2)", fontWeight: 400 }}>X</span>
+                        </div>
+                        <div style={{ fontSize: 8.5, letterSpacing: 2, color: "var(--muted)", marginTop: 3 }}>V 0.3 — RULES LIVE</div>
+                    </div>
+                    <button 
+                        className="md:hidden text-muted hover:text-text p-1"
+                        onClick={() => setIsOpen(false)}
+                    >
+                        ✕
+                    </button>
                 </div>
-                <div style={{ fontSize: 8.5, letterSpacing: 2, color: "var(--muted)", marginTop: 3 }}>V 0.3 — RULES LIVE</div>
-            </div>
 
             <nav className="px-nav">
                 {NAV.map((section) => (
@@ -230,6 +249,7 @@ export default function Sidebar() {
         .px-nb-warn { background: rgba(240, 160, 48, 0.1); color: var(--amber); }
         .px-nb-red { background: rgba(240, 60, 92, 0.1); color: var(--red); }
       `}</style>
-        </aside>
+            </aside>
+        </>
     );
 }

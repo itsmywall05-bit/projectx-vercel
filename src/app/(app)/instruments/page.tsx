@@ -2,6 +2,7 @@ import { PageIntro, SectionHeader, Highlight, Card } from "@/components/ui";
 import { Tag } from "@/components/ui/Tag";
 import { getInstruments } from "@/lib/data/queries";
 import type { InstrumentType } from "@/lib/data/types";
+import InstrumentRelationships from "@/components/instruments/InstrumentRelationships";
 
 const TYPE_TAG: Record<InstrumentType, { variant: "c" | "y" | "b" | "p"; label: string }> = {
   underlying: { variant: "c", label: "CL" },
@@ -61,42 +62,7 @@ export default async function InstrumentsPage() {
       </div>
 
       <SectionHeader title="Instrument Relationships" />
-      <Card>
-        <table className="dt">
-          <thead>
-            <tr>
-              <th>Instrument</th>
-              <th>Legs</th>
-              <th>Direction Sensitivity</th>
-              <th>Complexity</th>
-              <th>Playbook Impact</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><Tag variant="c">Outright</Tag> Ox</td>
-              <td>1</td>
-              <td style={{ color: "var(--red)" }}>High (direct)</td>
-              <td>Low</td>
-              <td>Trigger source</td>
-            </tr>
-            <tr>
-              <td><Tag variant="b">Spread</Tag> Ox1−Ox2</td>
-              <td>2</td>
-              <td style={{ color: "var(--amber)" }}>Moderate</td>
-              <td>Medium</td>
-              <td>Review entries if outright aggressive</td>
-            </tr>
-            <tr>
-              <td><Tag variant="p">Fly</Tag> Ox1−2Ox2+Ox3</td>
-              <td>3</td>
-              <td style={{ color: "var(--teal)" }}>Low (curvature)</td>
-              <td>High</td>
-              <td>Review entries if outright aggressive</td>
-            </tr>
-          </tbody>
-        </table>
-      </Card>
+      <InstrumentRelationships />
 
       <Highlight tone="b">
         The Playbook Rule 1 is anchored to the <strong>main outright</strong> of the product currently in focus. When the outright is too aggressive in one direction, it distorts the spread and fly environment — pulling or holding short-side entries is the appropriate defensive response.

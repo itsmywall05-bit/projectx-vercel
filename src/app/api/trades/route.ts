@@ -31,6 +31,28 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
+  if (body.risk_lt !== undefined && body.risk_lt !== null) {
+    // Fetch currently open trades (no exit_price), sorted oldest to newest
+    const { data: openTrades } = await supabaseAdmin
+      .from("trades")
+      .select("id, risk_lt")
+      .is("exit_price", null)
+      .order("created_at", { ascending: true })
+      .limit(4);
+
+    if (openTrades && openTrades.length > 0) {
+      // Shift risk limits: trade i gets trade i+1's risk_lt, last gets the new trade's risk_lt
+      for (let i = 0; i < openTrades.length; i++) {
+        const nextRiskLt = i < openTrades.length - 1 ? openTrades[i + 1].risk_lt : body.risk_lt;
+        
+        await supabaseAdmin
+          .from("trades")
+          .update({ risk_lt: nextRiskLt })
+          .eq("id", openTrades[i].id);
+      }
+    }
+  }
+
   const { data, error } = await supabaseAdmin
     .from("trades")
     .insert(body)

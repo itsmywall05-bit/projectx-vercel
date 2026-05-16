@@ -3,6 +3,8 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { useSidebar } from "./SidebarContext";
+
 const TITLES: Record<string, string> = {
   "/overview": "Overview",
   "/mind-feed": "Mind Feed",
@@ -14,7 +16,6 @@ const TITLES: Record<string, string> = {
   "/playbook": "Playbook",
   "/backtest": "Backtesting",
   "/trade-log": "Trade Log",
-  "/trade-log-legacy": "Trade Log (Legacy)",
   "/products": "Products",
   "/risk-console": "Risk Console",
   "/performance": "Performance Lab",
@@ -32,6 +33,7 @@ const TITLES: Record<string, string> = {
 export default function Topbar() {
   const pathname = usePathname();
   const [now, setNow] = useState<Date | null>(null);
+  const { toggle } = useSidebar();
 
   useEffect(() => {
     setNow(new Date());
@@ -54,9 +56,19 @@ export default function Topbar() {
         flexShrink: 0,
       }}
     >
+      <button 
+        className="md:hidden flex items-center justify-center p-1 text-muted hover:text-text"
+        onClick={toggle}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
       <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10.5, color: "var(--muted)" }}>
-        <span>projectX</span>
-        <span style={{ color: "var(--muted2)" }}>/</span>
+        <span className="hidden sm:inline">projectX</span>
+        <span className="hidden sm:inline" style={{ color: "var(--muted2)" }}>/</span>
         <span style={{ color: "var(--text)", fontSize: 11.5, fontWeight: 500 }}>{title}</span>
       </div>
       <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
