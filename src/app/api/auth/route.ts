@@ -17,10 +17,14 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error || !data) {
-    const keyHint = process.env.SUPABASE_SERVICE_ROLE_KEY
-      ? process.env.SUPABASE_SERVICE_ROLE_KEY.substring(0, 5) + "..."
-      : "MISSING";
-    return NextResponse.json({ error: "Auth not configured: " + (error?.message || "No data") + ` | Key: ${keyHint}` }, { status: 500 });
+    let roleStr = "UNKNOWN";
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.SUPABASE_SERVICE_ROLE_KEY.includes(".")) {
+      try {
+        const payload = Buffer.from(process.env.SUPABASE_SERVICE_ROLE_KEY.split(".")[1], 'base64').toString();
+        roleStr = JSON.parse(payload).role;
+      } catch (e) {}
+    }
+    return NextResponse.json({ error: "Auth not configured: " + (error?.message || "No data") + ` | Role parsed from Key: ${roleStr}` }, { status: 500 });
   }
 
   // If placeholder, set the passcode for first time
