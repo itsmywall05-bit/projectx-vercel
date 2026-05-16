@@ -35,8 +35,7 @@ export default function LoginPage() {
                 const data = await res.json().catch(() => ({}));
                 throw new Error(data.error ?? "Invalid passcode");
             }
-            router.push("/overview");
-            router.refresh();
+            window.location.href = "/overview";
         } catch (err) {
             setError(err instanceof Error ? err.message : "Something went wrong");
         } finally {
