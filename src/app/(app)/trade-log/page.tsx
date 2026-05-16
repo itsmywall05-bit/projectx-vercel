@@ -29,7 +29,12 @@ export default function TradeLogPage() {
 
         const res = await fetch(`/api/trades?${params}`);
         const data = await res.json();
-        setTrades(data);
+        if (Array.isArray(data)) {
+            setTrades(data);
+        } else {
+            console.error("API Error:", data);
+            setTrades([]);
+        }
         setLoading(false);
     }, [filters]);
 
