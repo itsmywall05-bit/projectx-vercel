@@ -68,7 +68,15 @@ export default function TradeForm({ editTrade, onSaved, onCancel }: TradeFormPro
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        fetch("/api/products").then((r) => r.json()).then(setProducts);
+        fetch("/api/products").then(async (r) => {
+            const data = await r.json();
+            if (data.error) {
+                console.error("API Error fetching products:", data.error);
+                setProducts([]);
+            } else {
+                setProducts(Array.isArray(data) ? data : []);
+            }
+        });
     }, []);
 
     useEffect(() => {

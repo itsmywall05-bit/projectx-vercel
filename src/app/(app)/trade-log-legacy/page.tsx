@@ -29,7 +29,12 @@ export default function TradeLogLegacyPage() {
 
         const res = await fetch(`/api/trades?${params}`);
         const data = await res.json();
-        setTrades(data);
+        if (data.error) {
+            console.error("API Error:", data.error);
+            setTrades([]); // default to empty array on error so the page doesn't crash
+        } else {
+            setTrades(Array.isArray(data) ? data : []);
+        }
         setLoading(false);
     }, [filters]);
 
