@@ -14,9 +14,9 @@ export default function DataConnPage() {
           <div className="dc-status dc-active">Active Stage</div>
         </div>
         <div className="dc-body">
-          Excel file fetches live prices from <strong>Trading Technologies (TT)</strong> via RTD (Real-Time Data) feature. The Excel file acts as the current data layer — relevant market data, prices, and potentially trade records can be maintained here and referenced by projectX.<br /><br />
-          <strong>What Excel + TT RTD can provide:</strong> Live futures prices (CL outrights, spreads, flies), settlement prices, volume data, intraday highs/lows.<br /><br />
-          <strong>Current limitation:</strong> Manual bridge — projectX reads from Excel, not directly from TT. This is the appropriate stage for now.
+          Excel file fetches live prices from <strong>Trading Technologies (TT)</strong> via RTD (Real-Time Data) feature. The Excel file acts as the current data layer — maintaining relevant market data and prices.<br /><br />
+          <strong>The Bridge (Active):</strong> We have established a live data bridge! Excel runs a background macro that continuously pushes (POSTs) the RTD prices to our new <code>/api/prices</code> endpoint. The Live Risk Engine in the Trade Log listens to this endpoint to calculate your real-time <code>Curr_Risk</code> and <code>Max_Risk</code>.<br /><br />
+          <strong>What Excel + TT RTD provides:</strong> Live futures prices (CL outrights, spreads, flies), triggering real-time risk updates in the web application without a direct TT API.
         </div>
       </div>
 
