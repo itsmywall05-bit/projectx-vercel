@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error || !data) {
-    return NextResponse.json({ error: "Auth not configured" }, { status: 500 });
+    return NextResponse.json({ error: "Auth not configured: " + (error?.message || "No data") }, { status: 500 });
   }
 
   // If placeholder, set the passcode for first time
