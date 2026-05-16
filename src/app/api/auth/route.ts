@@ -17,7 +17,10 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error || !data) {
-    return NextResponse.json({ error: "Auth not configured: " + (error?.message || "No data") }, { status: 500 });
+    const keyHint = process.env.SUPABASE_SERVICE_ROLE_KEY
+      ? process.env.SUPABASE_SERVICE_ROLE_KEY.substring(0, 5) + "..."
+      : "MISSING";
+    return NextResponse.json({ error: "Auth not configured: " + (error?.message || "No data") + ` | Key: ${keyHint}` }, { status: 500 });
   }
 
   // If placeholder, set the passcode for first time
