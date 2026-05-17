@@ -117,7 +117,7 @@ export default function Sidebar() {
                     borderRight: "1px solid var(--border)",
                     display: "flex",
                     flexDirection: "column",
-                    height: "100vh",
+                    height: "100dvh",
                 }}
             >
                 <div style={{ padding: "20px 18px 15px", borderBottom: "1px solid var(--border)", flexShrink: 0, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -197,7 +197,7 @@ export default function Sidebar() {
         .px-nav {
           flex: 1;
           overflow-y: auto;
-          padding: 12px 0 16px;
+          padding: 12px 0 32px;
         }
         .px-section {
           padding-bottom: 6px;
