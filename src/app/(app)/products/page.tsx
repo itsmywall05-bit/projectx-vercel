@@ -27,10 +27,21 @@ export default function ProductsPage() {
     const [loading, setLoading] = useState(true);
 
     async function fetchProducts() {
-        const res = await fetch("/api/products");
-        const data = await res.json();
-        setProducts(data);
-        setLoading(false);
+        try {
+            const res = await fetch("/api/products");
+            const data = await res.json();
+            if (data && data.error) {
+                console.error("API Error:", data.error);
+                setProducts([]);
+            } else {
+                setProducts(Array.isArray(data) ? data : []);
+            }
+        } catch (error) {
+            console.error("Failed to fetch products:", error);
+            setProducts([]);
+        } finally {
+            setLoading(false);
+        }
     }
 
     useEffect(() => { fetchProducts(); }, []);
