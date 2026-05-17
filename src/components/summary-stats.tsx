@@ -14,7 +14,8 @@ interface SummaryStatsProps {
 
 export default function SummaryStats({ trades }: SummaryStatsProps) {
   const closedTrades = trades.filter((t) => t.exit_price != null);
-  const totalTrades = closedTrades.length;
+  const totalTrades = trades.length;
+  const closedCount = closedTrades.length;
 
   let totalPnl = 0;
   let wins = 0;
@@ -28,8 +29,8 @@ export default function SummaryStats({ trades }: SummaryStatsProps) {
     if (pnl > 0) wins++;
   });
 
-  const winRate = totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) : "0";
-  const avgPnl = totalTrades > 0 ? (totalPnl / totalTrades).toFixed(2) : "0";
+  const winRate = closedCount > 0 ? ((wins / closedCount) * 100).toFixed(1) : "0";
+  const avgPnl = closedCount > 0 ? (totalPnl / closedCount).toFixed(2) : "0";
 
   const stats = [
     { label: "Total Trades", value: totalTrades.toString(), color: "border-t-teal" },
