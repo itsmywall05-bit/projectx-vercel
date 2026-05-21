@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import FeedbackForm from "./FeedbackForm";
 import type { FeedbackEntry } from "@/lib/data/types";
 
@@ -20,17 +20,23 @@ export default function ReviewViewer({ allFeedback, nextSessionNumber, today }: 
         return dateB - dateA; // Most recent first
     });
 
-    const currentEntry = sortedByDate[selectedIndex];
-    const hasNext = selectedIndex < sortedByDate.length - 1;
-    const hasPrev = selectedIndex > 0;
+    const currentEntry = sortedByDate[Math.min(selectedIndex, sortedByDate.length - 1)] as FeedbackEntry | undefined;
+    const hasOlder = selectedIndex < sortedByDate.length - 1;
+    const hasNewer = selectedIndex > 0;
 
-    const handlePrevious = () => {
-        if (hasPrev) setSelectedIndex(selectedIndex + 1);
+    const handleOlder = () => {
+        if (hasOlder) setSelectedIndex(selectedIndex + 1);
     };
 
-    const handleNext = () => {
-        if (hasNext) setSelectedIndex(selectedIndex - 1);
+    const handleNewer = () => {
+        if (hasNewer) setSelectedIndex(selectedIndex - 1);
     };
+
+    useEffect(() => {
+        if (selectedIndex >= sortedByDate.length && sortedByDate.length > 0) {
+            setSelectedIndex(sortedByDate.length - 1);
+        }
+    }, [selectedIndex, sortedByDate.length]);
 
     const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const selectedDate = event.target.value;
@@ -75,15 +81,15 @@ export default function ReviewViewer({ allFeedback, nextSessionNumber, today }: 
                     {/* Navigation and Date Picker */}
                     <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 14, marginBottom: 16 }}>
                         <button
-                            onClick={handlePrevious}
-                            disabled={!hasPrev}
+                            onClick={handleOlder}
+                            disabled={!hasOlder}
                             style={{
                                 padding: "6px 10px",
                                 borderRadius: 3,
                                 border: "1px solid var(--border)",
-                                background: hasPrev ? "var(--bg3)" : "var(--bg2)",
-                                color: hasPrev ? "var(--text)" : "var(--muted)",
-                                cursor: hasPrev ? "pointer" : "not-allowed",
+                                background: hasOlder ? "var(--bg3)" : "var(--bg2)",
+                                color: hasOlder ? "var(--text)" : "var(--muted)",
+                                cursor: hasOlder ? "pointer" : "not-allowed",
                                 fontSize: 11,
                             }}
                         >
@@ -127,15 +133,15 @@ export default function ReviewViewer({ allFeedback, nextSessionNumber, today }: 
                         </div>
 
                         <button
-                            onClick={handleNext}
-                            disabled={!hasNext}
+                            onClick={handleNewer}
+                            disabled={!hasNewer}
                             style={{
                                 padding: "6px 10px",
                                 borderRadius: 3,
                                 border: "1px solid var(--border)",
-                                background: hasNext ? "var(--bg3)" : "var(--bg2)",
-                                color: hasNext ? "var(--text)" : "var(--muted)",
-                                cursor: hasNext ? "pointer" : "not-allowed",
+                                background: hasNewer ? "var(--bg3)" : "var(--bg2)",
+                                color: hasNewer ? "var(--text)" : "var(--muted)",
+                                cursor: hasNewer ? "pointer" : "not-allowed",
                                 fontSize: 11,
                             }}
                         >

@@ -2,6 +2,8 @@ import { PageIntro, SectionHeader } from "@/components/ui";
 import ReviewViewer from "@/components/feedback/ReviewViewer";
 import { getFeedbackEntries } from "@/lib/data/queries";
 
+export const dynamic = "force-dynamic";
+
 export default async function FeedbackPage() {
   const feedback = await getFeedbackEntries();
   const nextSessionNumber =

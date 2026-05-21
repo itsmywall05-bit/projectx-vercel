@@ -77,5 +77,5 @@ export async function getBacklogItems(): Promise<BacklogItem[]> {
 }
 
 export async function getFeedbackEntries(): Promise<FeedbackEntry[]> {
-  return fetchOrSeed<FeedbackEntry>("feedback_log", { column: "session_number" }, SEED_FEEDBACK);
+  return fetchOrSeed<FeedbackEntry>("feedback_log", { column: "session_date", ascending: false }, SEED_FEEDBACK);
 }
