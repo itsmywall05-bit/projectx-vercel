@@ -92,7 +92,14 @@ insert into public.instruments (symbol, name, parent_id, type, formula, notes) v
 on conflict do nothing;
 
 insert into public.instruments (symbol, name, parent_id, type, formula, notes)
-select * from (values
+select
+  t.symbol,
+  t.name,
+  parent.parent_id,
+  t.type,
+  t.formula,
+  t.notes
+from (values
   ('Ox', 'Outright — single month contract',
     'outright',
     'e.g. CLZ5, CLH6, CLM6 ...',
@@ -145,14 +152,29 @@ insert into public.backlog_items (title, category) values
 on conflict do nothing;
 
 -- ─── feedback_log ───────────────────────────────────────────────
-insert into public.feedback_log (session_number, session_date, body, tags) values
+insert into public.feedback_log (session_number, session_date, body, went_well, didnt_go_well, to_improve, mistake, learning, tags) values
 (1, '2026-05-01',
  'Initiated projectX. Style: systematic. Instruments: general → CL futures. Map style: spatial + detail. Side Brain: health, gaps, feedback, learning.',
+ 'Project structure and roadmap clarity were strong.',
+ 'No live trade data was available yet.',
+ 'Finish the feedback page and capture session-level reviews.',
+ 'Waiting too long to wire in structured feedback.',
+ 'Build review capture early so the loop can close from day one.',
  array['origin', 'architecture']),
 (2, '2026-05-01',
  'New areas: Map zones, Plan dashboards, Side Brain meta-layer, projectX as learning companion.',
+ 'Conceptual model for new modules was clear.',
+ 'No concrete review entry flow existed yet.',
+ 'Add date-driven EOD review sections.',
+ null,
+ null,
  array['expansion', 'map']),
 (3, '2026-05-02',
  'Core rules defined: PreTrade Checklist, 1.5:1 R:R exit, assumption-break exit, 1% sizing, 2K/2-trade daily limit. Instruments: CL WTI, Outrights/Spreads/Flies. Data: Excel + TT RTD. Strategies: ORB + VWAP Std Scalp. Playbook Rule 1: aggressive bullish outright → hold short entries.',
+ 'Rules and trading structure were clearly documented.',
+ 'Trade data capture was still pending.',
+ 'Connect review entries to trade outcomes later.',
+ null,
+ null,
  array['rules', 'instruments', 'strategies', 'playbook'])
 on conflict do nothing;

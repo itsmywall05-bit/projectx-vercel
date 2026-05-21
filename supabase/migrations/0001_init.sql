@@ -109,10 +109,16 @@ create table if not exists public.feedback_log (
   session_number  int not null,
   session_date    date not null,
   body            text not null,
+  went_well       text,
+  didnt_go_well   text,
+  to_improve      text,
+  mistake         text,
+  learning        text,
   tags            text[] not null default '{}',
   created_at      timestamptz not null default now()
 );
 create index if not exists feedback_log_session_number_idx on public.feedback_log (session_number);
+create index if not exists feedback_log_session_date_idx on public.feedback_log (session_date);
 
 -- ─── Row-Level Security (open read for anon, write only via service role) ───
 alter table public.trading_rules    enable row level security;

@@ -96,5 +96,10 @@ export type FeedbackEntry = {
   session_number: number;
   session_date: string;
   body: string;
+  went_well: string | null;
+  didnt_go_well: string | null;
+  to_improve: string | null;
+  mistake: string | null;
+  learning: string | null;
   tags: string[];
 };

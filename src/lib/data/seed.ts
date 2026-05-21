@@ -207,7 +207,40 @@ export const SEED_BACKLOG: BacklogItem[] = [
 
 // ─── Feedback (3) ───────────────────────────────────────────────
 export const SEED_FEEDBACK: FeedbackEntry[] = [
-  { id: "seed-f-1", session_number: 1, session_date: "2026-05-01", body: "Initiated projectX. Style: systematic. Instruments: general → CL futures. Map style: spatial + detail. Side Brain: health, gaps, feedback, learning.", tags: ["origin", "architecture"] },
-  { id: "seed-f-2", session_number: 2, session_date: "2026-05-01", body: "New areas: Map zones, Plan dashboards, Side Brain meta-layer, projectX as learning companion.", tags: ["expansion", "map"] },
-  { id: "seed-f-3", session_number: 3, session_date: "2026-05-02", body: "Core rules defined: PreTrade Checklist, 1.5:1 R:R exit, assumption-break exit, 1% sizing, 2K/2-trade daily limit. Instruments: CL WTI, Outrights/Spreads/Flies. Data: Excel + TT RTD. Strategies: ORB + VWAP Std Scalp. Playbook Rule 1: aggressive bullish outright → hold short entries.", tags: ["rules", "instruments", "strategies", "playbook"] },
+  {
+    id: "seed-f-1",
+    session_number: 1,
+    session_date: "2026-05-01",
+    body: "Initiated projectX. Style: systematic. Instruments: general → CL futures. Map style: spatial + detail. Side Brain: health, gaps, feedback, learning.",
+    went_well: "Project structure and roadmap clarity were strong.",
+    didnt_go_well: "No live trade data was available yet.",
+    to_improve: "Finish the feedback page and capture session-level reviews.",
+    mistake: "Waiting too long to wire in structured feedback.",
+    learning: "Build review capture early so the loop can close from day one.",
+    tags: ["origin", "architecture"],
+  },
+  {
+    id: "seed-f-2",
+    session_number: 2,
+    session_date: "2026-05-01",
+    body: "New areas: Map zones, Plan dashboards, Side Brain meta-layer, projectX as learning companion.",
+    went_well: "Conceptual model for new modules was clear.",
+    didnt_go_well: "No concrete review entry flow existed yet.",
+    to_improve: "Add date-driven EOD review sections.",
+    mistake: null,
+    learning: null,
+    tags: ["expansion", "map"],
+  },
+  {
+    id: "seed-f-3",
+    session_number: 3,
+    session_date: "2026-05-02",
+    body: "Core rules defined: PreTrade Checklist, 1.5:1 R:R exit, assumption-break exit, 1% sizing, 2K/2-trade daily limit. Instruments: CL WTI, Outrights/Spreads/Flies. Data: Excel + TT RTD. Strategies: ORB + VWAP Std Scalp. Playbook Rule 1: aggressive bullish outright → hold short entries.",
+    went_well: "Rules and trading structure were clearly documented.",
+    didnt_go_well: "Trade data capture was still pending.",
+    to_improve: "Connect review entries to trade outcomes later.",
+    mistake: null,
+    learning: null,
+    tags: ["rules", "instruments", "strategies", "playbook"],
+  },
 ];
