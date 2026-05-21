@@ -73,6 +73,11 @@ export default function FeedbackForm({ initialSessionNumber, initialDate }: Feed
             setMistake("");
             setLearning("");
             setTags("");
+
+            // Refresh page data after 1 second to show new review
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
         } catch (error) {
             setStatus(error instanceof Error ? error.message : "Save failed.");
         } finally {
