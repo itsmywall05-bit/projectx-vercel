@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedback Loop - projectX</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #080809;
+            color: #dddde8;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            margin: 0;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .pi {
+            font-family: 'Fraunces', serif;
+            font-style: italic;
+            font-size: 14px;
+            margin-bottom: 20px;
+            color: #dddde8;
+        }
+
+        .sh {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin-bottom: 18px;
+            margin-top: 10px;
+        }
+
+        .sh-t {
+            font-weight: 600;
+            font-size: 11.5px;
+            color: #dddde8;
+            white-space: nowrap;
+        }
+
+        .sh-l {
+            flex: 1;
+            height: 1px;
+            background: #1e1e26;
+        }
+
+        .sh-s {
+            font-size: 9px;
+            color: #505068;
+            white-space: nowrap;
+        }
+
+        .card {
+            background: #141418;
+            border: 1px solid #1e1e26;
+            border-radius: 3px;
+            padding: 13px;
+            margin-bottom: 14px;
+        }
+
+        .cl {
+            font-size: 8px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #505068;
+            margin-bottom: 6px;
+        }
+
+        .cv {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 22px;
+            color: #dddde8;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .cs {
+            font-size: 9px;
+            color: #505068;
+            margin-bottom: 10px;
+        }
+
+        .button-group {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        button {
+            padding: 8px 12px;
+            border-radius: 3px;
+            border: 1px solid #1e1e26;
+            background: #b8f050;
+            color: black;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button.toggle-active {
+            background: #38f0b0;
+        }
+
+        .nav-controls {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+
+        .nav-btn {
+            padding: 6px 10px;
+            border-radius: 3px;
+            border: 1px solid #1e1e26;
+            background: #141418;
+            color: #dddde8;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .nav-btn:disabled {
+            color: #505068;
+            cursor: not-allowed;
+            background: #0e0e11;
+        }
+
+        .input-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        label {
+            display: grid;
+            gap: 4px;
+            font-size: 11px;
+            color: #505068;
+        }
+
+        input[type="number"],
+        input[type="date"] {
+            width: 100%;
+            padding: 8px;
+            border-radius: 3px;
+            border: 1px solid #1e1e26;
+            background: #0e0e11;
+            color: #dddde8;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+
+        input[type="date"] {
+            background: #141418;
+            cursor: pointer;
+        }
+
+        input[type="number"]:disabled {
+            color: #9898b0;
+            background: #0e0e11;
+        }
+
+        .review-section {
+            display: grid;
+            gap: 12px;
+        }
+
+        .review-item {
+            border-left: 2px solid #38f0b0;
+            padding-left: 10px;
+        }
+
+        .review-item.bad {
+            border-left-color: #f03c5c;
+        }
+
+        .review-item.improve {
+            border-left-color: #f0a030;
+        }
+
+        .review-label {
+            font-size: 11px;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .review-label.good {
+            color: #38f0b0;
+        }
+
+        .review-label.bad {
+            color: #f03c5c;
+        }
+
+        .review-label.improve {
+            color: #f0a030;
+        }
+
+        .review-text {
+            font-size: 12px;
+            color: #dddde8;
+            line-height: 1.6;
+        }
+
+        .pagination {
+            font-size: 10px;
+            color: #505068;
+            margin-top: 12px;
+            text-align: center;
+        }
+
+        .count-badge {
+            font-size: 11px;
+            color: #505068;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Page Intro -->
+    <div class="pi">Review. Learn. Adjust. The loop closes here.</div>
+
+    <!-- Section Header -->
+    <div class="sh">
+        <div class="sh-t">EOD Reviews</div>
+        <div class="sh-l"></div>
+        <div class="sh-s">One review at a time</div>
+    </div>
+
+    <!-- Add New Review Button -->
+    <div class="button-group">
+        <button>+ New EOD Review</button>
+        <div class="count-badge">5 reviews recorded</div>
+    </div>
+
+    <!-- Navigation and Date Picker -->
+    <div class="nav-controls">
+        <button class="nav-btn">← Older</button>
+        <div class="input-group">
+            <label>
+                Session #
+                <input type="number" value="5" disabled>
+            </label>
+            <label>
+                Date
+                <input type="date" value="2026-05-21">
+            </label>
+        </div>
+        <button class="nav-btn" disabled>Newer →</button>
+    </div>
+
+    <!-- Review Display Card -->
+    <div class="card">
+        <div class="cl">Session 5 · 2026-05-21</div>
+        <div class="cv">Feedback review</div>
+        <div class="cs">daily, lesson, review</div>
+
+        <div class="review-section">
+            <!-- What went well -->
+            <div class="review-item">
+                <div class="review-label good">✓ What went well</div>
+                <div class="review-text">
+                    ORB breakout trade hit first target at session high. Managed two successful scalp trades on VWAP
+                    support. Followed the pre-trade checklist completely — no assumptions slipped.
+                </div>
+            </div>
+
+            <!-- What didn't go well -->
+            <div class="review-item bad">
+                <div class="review-label bad">✗ What didn't go well</div>
+                <div class="review-text">
+                    Exited one spread position too early. Also took a small loss on a fly when the front contract got
+                    aggressive — should have recognized that signal earlier and stopped trading flies during the
+                    outright spike.
+                </div>
+            </div>
+
+            <!-- What to improve -->
+            <div class="review-item improve">
+                <div class="review-label improve">→ What to improve</div>
+                <div class="review-text">
+                    Add a visual cue to the trading dashboard that flags when the outright is > 2 standard deviations
+                    aggressive. Exit spread/fly trades faster when that signal fires.
+                </div>
+            </div>
+
+            <!-- Mistake -->
+            <div class="review-item bad">
+                <div class="review-label bad">⚠ Mistake</div>
+                <div class="review-text">
+                    Ignored Rule 3 (assumption break exit) when the front contract price action changed character
+                    midday. Told myself it was still valid but the market context was different.
+                </div>
+            </div>
+
+            <!-- Learning -->
+            <div class="review-item">
+                <div class="review-label good">🧠 Learning</div>
+                <div class="review-text">
+                    Market conditions are not static. The assumption that held at 10am may not hold at 2pm. The exit
+                    rule exists for a reason — protect the capital and re-entry is free.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination Info -->
+    <div class="pagination">Showing 1 of 5 reviews</div>
+
+    <hr style="border: none; border-top: 1px solid #1e1e26; margin: 30px 0;">
+
+    <!-- Alternative View: Form Collapsed (first view when landing) -->
+    <div style="margin-top: 40px;">
+        <div class="sh">
+            <div class="sh-t">What it looks like on first load</div>
+            <div class="sh-l"></div>
+        </div>
+
+        <div class="button-group">
+            <button class="toggle-active">− New EOD Review</button>
+            <div class="count-badge">3 reviews recorded</div>
+        </div>
+
+        <!-- Collapsed Card (just the form header, minimized) -->
+        <div class="card" style="background: #0e0e11; border-color: #38f0b0; padding: 20px; text-align: center;">
+            <div style="font-size: 20px; color: #38f0b0; margin-bottom: 10px;">+</div>
+            <div style="font-size: 11px; color: #505068;">Click above to add your first EOD review</div>
+        </div>
+    </div>
+
+</body>
+
+</html>

@@ -1,4 +1,5 @@
 import { PageIntro, SectionHeader, Card } from "@/components/ui";
+import TDForm from "@/components/backlog/TDForm";
 import { getBacklogItems } from "@/lib/data/queries";
 
 export default async function BacklogPage() {
@@ -19,6 +20,10 @@ export default async function BacklogPage() {
           </div>
         ))}
       </Card>
+
+      <div className="mt-6">
+        <TDForm />
+      </div>
     </>
   );
 }

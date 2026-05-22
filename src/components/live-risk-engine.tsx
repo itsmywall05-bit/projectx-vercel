@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { getAllStrategies, type TaxonomyStrategy } from "@/lib/taxonomy";
+import { getLivePriceForTrade, normalizePriceKey } from "@/lib/pricing";
 
 interface Trade {
     id: string;
@@ -18,7 +20,8 @@ interface Trade {
 
 export default function LiveRiskEngine({ trades }: { trades: Trade[] }) {
     const [prices, setPrices] = useState<Record<string, number>>({});
-    
+    const [strategies, setStrategies] = useState<TaxonomyStrategy[]>([]);
+
     // Filter open trades
     const openTrades = trades.filter(t => !t.exit_price);
 
@@ -29,12 +32,24 @@ export default function LiveRiskEngine({ trades }: { trades: Trade[] }) {
                 const res = await fetch("/api/prices");
                 const data = await res.json();
                 setPrices(data);
-            } catch (e) {}
+            } catch (e) { }
         };
         fetchPrices();
         const interval = setInterval(fetchPrices, 2000);
         return () => clearInterval(interval);
     }, []);
+
+    useEffect(() => {
+        getAllStrategies().then((loaded) => setStrategies(loaded));
+    }, []);
+
+    const normalizedPrices = useMemo(() => {
+        const normalized: Record<string, number> = {};
+        Object.entries(prices).forEach(([key, value]) => {
+            normalized[normalizePriceKey(key)] = value;
+        });
+        return normalized;
+    }, [prices]);
 
     if (openTrades.length === 0) return null;
 
@@ -72,13 +87,13 @@ export default function LiveRiskEngine({ trades }: { trades: Trade[] }) {
                         </thead>
                         <tbody>
                             {sortedOpenTrades.map((t, idx) => {
-                                const currentPrice = prices[t.instrument] || t.entry_price; // fallback to entry if no live price
+                                const currentPrice = getLivePriceForTrade(t.instrument, t.product, normalizedPrices, strategies) ?? t.entry_price;
                                 const sl = t.sl_price || 0;
-                                
+
                                 const openRisk = (sl - t.entry_price) * t.size_contracts;
                                 const currRisk = (sl - currentPrice) * t.size_contracts;
                                 const maxRisk = Math.max(openRisk, currRisk);
-                                
+
                                 return (
                                     <tr key={t.id} className="hover:bg-bg4 transition-colors">
                                         <td className="px-4 py-3 text-sm text-text border-b border-border">
