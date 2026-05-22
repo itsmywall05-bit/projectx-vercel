@@ -1,6 +1,13 @@
 import { getAllStrategies, type TaxonomyStrategy } from "@/lib/taxonomy";
 
-export type LivePrices = Record<string, number>;
+export type PriceRecord = {
+    last: number;
+    change: number | null;
+    settle: number | null;
+    updated_at: string;
+};
+
+export type LivePrices = Record<string, number | PriceRecord>;
 
 export function normalizePriceKey(key: string): string {
     return key.trim().toUpperCase();
@@ -15,7 +22,10 @@ export function buildInstrumentPriceKey(instrument: string): string {
 }
 
 export function getPriceFromMap(key: string, prices: LivePrices): number | undefined {
-    return prices[normalizePriceKey(key)];
+    const item = prices[normalizePriceKey(key)];
+    if (item === undefined) return undefined;
+    if (typeof item === "number") return item;
+    return item.last;
 }
 
 export function parseInstrumentLabel(instrument: string) {
