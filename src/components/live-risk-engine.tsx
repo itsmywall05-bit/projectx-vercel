@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getAllStrategies, type TaxonomyStrategy } from "@/lib/taxonomy";
-import { getLivePriceForTrade, normalizePriceKey } from "@/lib/pricing";
+import { getLivePriceForTrade, normalizePriceKey, type PriceRecord } from "@/lib/pricing";
 import PositionMonitor from "@/components/position-monitor";
 
 interface Trade {
@@ -20,7 +20,7 @@ interface Trade {
 }
 
 export default function LiveRiskEngine({ trades }: { trades: Trade[] }) {
-    const [prices, setPrices] = useState<Record<string, number>>({});
+    const [prices, setPrices] = useState<Record<string, number | PriceRecord>>({});
     const [strategies, setStrategies] = useState<TaxonomyStrategy[]>([]);
 
     // Filter open trades

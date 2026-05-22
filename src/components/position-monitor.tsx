@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getAllStrategies, type TaxonomyStrategy } from "@/lib/taxonomy";
-import { addMonthsToAnchor, buildOutrightPriceKey, getPriceFromMap } from "@/lib/pricing";
+import { addMonthsToAnchor, buildOutrightPriceKey, getPriceFromMap, type LivePrices } from "@/lib/pricing";
 
 type Trade = {
     id: string;
@@ -14,7 +14,7 @@ type Trade = {
 
 export default function PositionMonitor({ fetchInterval = 3000 }: { fetchInterval?: number }) {
     const [trades, setTrades] = useState<Trade[]>([]);
-    const [prices, setPrices] = useState<Record<string, number>>({});
+    const [prices, setPrices] = useState<LivePrices>({});
     const [strategies, setStrategies] = useState<TaxonomyStrategy[]>([]);
 
     useEffect(() => {

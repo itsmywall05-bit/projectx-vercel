@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase-server";
 import { normalizePriceKey } from "@/lib/pricing";
 
 export type ExcelPriceUpdate = {
@@ -13,18 +14,26 @@ export type ExcelPriceUpdate = {
 };
 
 export type StoredPriceRecord = {
+    price_key: string;
+    instrument?: string | null;
+    symbol?: string | null;
+    product?: string | null;
+    anchor_month?: string | null;
     last: number;
     change: number | null;
     settle: number | null;
     updated_at: string;
 };
 
-const globalPrices: Record<string, StoredPriceRecord> = {};
-
-function createStoredRecord(payload: ExcelPriceUpdate): StoredPriceRecord | null {
+function createStoredRow(payload: ExcelPriceUpdate): Omit<StoredPriceRecord, "price_key"> | null {
     const last = typeof payload.last === "number" ? payload.last : typeof payload.price === "number" ? payload.price : undefined;
     if (last === undefined) return null;
+
     return {
+        instrument: typeof payload.instrument === "string" && payload.instrument.trim() ? payload.instrument.trim() : null,
+        symbol: typeof payload.symbol === "string" && payload.symbol.trim() ? payload.symbol.trim() : null,
+        product: typeof payload.product === "string" && payload.product.trim() ? payload.product.trim() : null,
+        anchor_month: typeof payload.anchor_month === "string" && payload.anchor_month.trim() ? payload.anchor_month.trim() : null,
         last,
         change: typeof payload.change === "number" ? payload.change : null,
         settle: typeof payload.settle === "number" ? payload.settle : null,
@@ -32,10 +41,30 @@ function createStoredRecord(payload: ExcelPriceUpdate): StoredPriceRecord | null
     };
 }
 
-function storePrice(key: string, record: StoredPriceRecord) {
-    const normalized = normalizePriceKey(key);
-    if (!normalized) return;
-    globalPrices[normalized] = record;
+function buildPriceRows(update: ExcelPriceUpdate) {
+    const baseRow = createStoredRow(update);
+    if (!baseRow) return [];
+
+    const rows: Array<Omit<StoredPriceRecord, "price_key"> & { price_key: string }> = [];
+    const instrumentKey = typeof update.instrument === "string" && update.instrument.trim();
+    const symbolKey = typeof update.symbol === "string" && update.symbol.trim();
+    const productKey = typeof update.product === "string" && update.product.trim();
+    const anchorMonthKey = typeof update.anchor_month === "string" && update.anchor_month.trim();
+
+    if (instrumentKey) {
+        rows.push({ price_key: normalizePriceKey(update.instrument!), ...baseRow });
+    }
+    if (symbolKey) {
+        rows.push({ price_key: normalizePriceKey(update.symbol!), ...baseRow });
+    }
+    if (productKey && anchorMonthKey) {
+        rows.push({ price_key: normalizePriceKey(`${update.product} ${update.anchor_month}`), ...baseRow });
+        if (symbolKey) {
+            rows.push({ price_key: normalizePriceKey(`${update.product} ${update.anchor_month} ${update.symbol}`), ...baseRow });
+        }
+    }
+
+    return rows;
 }
 
 export async function POST(req: Request) {
@@ -43,36 +72,37 @@ export async function POST(req: Request) {
         const data = await req.json();
         const updates = Array.isArray(data) ? data : [data];
 
-        let count = 0;
-        for (const update of updates) {
-            const record = createStoredRecord(update);
-            if (!record) continue;
-            const instrumentKey = typeof update.instrument === "string" && update.instrument.trim();
-            const symbolKey = typeof update.symbol === "string" && update.symbol.trim();
-            const productKey = typeof update.product === "string" && update.product.trim();
-            const anchorMonthKey = typeof update.anchor_month === "string" && update.anchor_month.trim();
-
-            if (instrumentKey) {
-                storePrice(update.instrument!, record);
-            }
-            if (symbolKey) {
-                storePrice(update.symbol!, record);
-            }
-            if (productKey && anchorMonthKey) {
-                storePrice(`${update.product} ${update.anchor_month}`, record);
-                if (symbolKey) {
-                    storePrice(`${update.product} ${update.anchor_month} ${update.symbol}`, record);
-                }
-            }
-            count++;
+        const rows = updates.flatMap((update) => buildPriceRows(update));
+        if (rows.length === 0) {
+            return NextResponse.json({ error: "No valid price rows found" }, { status: 400 });
         }
 
-        return NextResponse.json({ success: true, count });
+        const { data: inserted, error } = await supabaseAdmin
+            .from("price_feed")
+            .upsert(rows, { onConflict: "price_key" })
+            .select();
+
+        if (error) {
+            return NextResponse.json({ error: error.message }, { status: 500 });
+        }
+
+        return NextResponse.json({ success: true, count: rows.length, data: inserted });
     } catch (e) {
         return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 }
 
 export async function GET() {
-    return NextResponse.json(globalPrices);
+    const { data, error } = await supabaseAdmin.from("price_feed").select("*");
+    if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    const priceMap: Record<string, StoredPriceRecord> = {};
+    (data ?? []).forEach((row) => {
+        if (!row?.price_key) return;
+        priceMap[row.price_key] = row as StoredPriceRecord;
+    });
+
+    return NextResponse.json(priceMap);
 }
