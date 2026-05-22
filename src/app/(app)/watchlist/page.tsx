@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { PageIntro, StubPage } from "@/components/ui";
+import CurvePlot from "@/components/CurvePlot";
 
 type PriceEntry = {
   month?: string;
@@ -39,6 +40,13 @@ export default function WatchlistPage() {
       mounted = false;
     };
   }, []);
+
+  const points = (prices || [])
+    .map((p, i) => ({
+      label: p.anchorMonth ?? p.month ?? p.name ?? `row-${i}`,
+      price: Number(p.price ?? p.outright ?? (p as any).value ?? 0),
+    }))
+    .filter((x) => Number.isFinite(x.price));
 
   return (
     <>
@@ -98,10 +106,22 @@ export default function WatchlistPage() {
 
           <div style={{ flex: 1, display: "grid", gap: 12 }}>
             <div style={{ height: 140, background: "#f9fafb", border: "1px dashed #e5e7eb", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              Overlay chart placeholder (outright)
+              {points.length > 0 ? (
+                <div style={{ width: "100%", maxWidth: 640 }}>
+                  <CurvePlot points={points} />
+                </div>
+              ) : (
+                <div>Overlay chart placeholder (outright)</div>
+              )}
             </div>
             <div style={{ height: 140, background: "#f9fafb", border: "1px dashed #e5e7eb", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              Overlay chart placeholder (curve shape)
+              {points.length > 0 ? (
+                <div style={{ width: "100%", maxWidth: 640 }}>
+                  <CurvePlot points={points} />
+                </div>
+              ) : (
+                <div>Overlay chart placeholder (curve shape)</div>
+              )}
             </div>
           </div>
         </div>
