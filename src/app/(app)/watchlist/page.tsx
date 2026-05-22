@@ -15,42 +15,51 @@ export default function WatchlistPage() {
   const [prices, setPrices] = useState<PriceEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchPrices = async () => {
+    try {
+      const res = await fetch("/api/prices");
+      const data = await res.json();
+      let entries: PriceEntry[] = [];
+
+      if (Array.isArray(data)) {
+        entries = data.map((item: any, i: number) => ({
+          key: item.key ?? `row-${i}`,
+          last: Number(item.last ?? item.price ?? item.outright ?? 0),
+          change: item.change ?? null,
+          settle: item.settle ?? null,
+        }));
+      } else if (data && typeof data === "object") {
+        entries = Object.entries(data).map(([key, value]) => {
+          if (typeof value === "number") {
+            return { key, last: value, change: null, settle: null };
+          }
+          const record = value as Record<string, unknown>;
+          return {
+            key,
+            last: Number(record.last ?? record.price ?? record.outright ?? 0),
+            change: typeof record.change === "number" ? record.change : null,
+            settle: typeof record.settle === "number" ? record.settle : null,
+          };
+        });
+      }
+
+      setPrices(entries || []);
+      setError(null);
+    } catch (err) {
+      setError(String(err));
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
-    fetch("/api/prices")
-      .then((res) => res.json())
-      .then((data) => {
-        if (!mounted) return;
-        let entries: PriceEntry[] = [];
-        if (Array.isArray(data)) {
-          entries = data.map((item: any, i: number) => ({
-            key: item.key ?? `row-${i}`,
-            last: Number(item.last ?? item.price ?? item.outright ?? 0),
-            change: item.change ?? null,
-            settle: item.settle ?? null,
-          }));
-        } else if (data && typeof data === "object") {
-          entries = Object.entries(data).map(([key, value]) => {
-            if (typeof value === "number") {
-              return { key, last: value, change: null, settle: null };
-            }
-            const record = value as Record<string, unknown>;
-            return {
-              key,
-              last: Number(record.last ?? record.price ?? record.outright ?? 0),
-              change: typeof record.change === "number" ? record.change : null,
-              settle: typeof record.settle === "number" ? record.settle : null,
-            };
-          });
-        }
-        setPrices(entries || []);
-      })
-      .catch((err) => {
-        if (!mounted) return;
-        setError(String(err));
-      });
+    fetchPrices();
+    const interval = setInterval(() => {
+      if (!mounted) return;
+      fetchPrices();
+    }, 3000);
     return () => {
       mounted = false;
+      clearInterval(interval);
     };
   }, []);
 
