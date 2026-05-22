@@ -109,7 +109,7 @@ export default function LiveRiskEngine({ trades }: { trades: Trade[] }) {
 
             {totals.nearLimitCount > 0 && (
                 <div className="mb-4 p-3 bg-amber/10 border border-amber/20 rounded">
-                    <strong>{totals.nearLimitCount}</strong> trade(s) near their risk limit (>= 80%)
+                    <strong>{totals.nearLimitCount}</strong> trade(s) near their risk limit (&gt;= 80%)
                 </div>
             )}
 
