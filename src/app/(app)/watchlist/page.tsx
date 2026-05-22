@@ -34,11 +34,12 @@ export default function WatchlistPage() {
             if (typeof value === "number") {
               return { key, last: value, change: null, settle: null };
             }
+            const record = value as Record<string, unknown>;
             return {
               key,
-              last: Number(value?.last ?? value?.price ?? value?.outright ?? 0),
-              change: typeof value?.change === "number" ? value.change : null,
-              settle: typeof value?.settle === "number" ? value.settle : null,
+              last: Number(record.last ?? record.price ?? record.outright ?? 0),
+              change: typeof record.change === "number" ? record.change : null,
+              settle: typeof record.settle === "number" ? record.settle : null,
             };
           });
         }
