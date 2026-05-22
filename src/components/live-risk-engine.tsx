@@ -47,7 +47,7 @@ export default function LiveRiskEngine({ trades }: { trades: Trade[] }) {
     const normalizedPrices = useMemo(() => {
         const normalized: Record<string, number> = {};
         Object.entries(prices).forEach(([key, value]) => {
-            normalized[normalizePriceKey(key)] = value;
+            normalized[normalizePriceKey(key)] = typeof value === "number" ? value : value.last;
         });
         return normalized;
     }, [prices]);
