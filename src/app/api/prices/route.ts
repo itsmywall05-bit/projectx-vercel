@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+export const dynamic = 'force-dynamic';
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { normalizePriceKey } from "@/lib/pricing";
 

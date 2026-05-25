@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { getAllStrategies, type TaxonomyStrategy } from "@/lib/taxonomy";
 import { getLivePriceForTrade, normalizePriceKey, type PriceRecord } from "@/lib/pricing";
+import { Card, StatCard, PageIntro, SectionHeader, Select } from "@/components/ui";
 
 type TradeRecord = {
   id: string;
@@ -22,7 +23,7 @@ type TradeRecord = {
   } | null;
 };
 
-const TOTAL_CAPITAL = 100000;
+const TOTAL_CAPITAL = 10000;
 
 export default function RiskConsolePage() {
   const [trades, setTrades] = useState<TradeRecord[]>([]);
@@ -30,6 +31,23 @@ export default function RiskConsolePage() {
   const [strategies, setStrategies] = useState<TaxonomyStrategy[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [riskAmount, setRiskAmount] = useState<number>(100);
+  const [selectedProduct, setSelectedProduct] = useState<string>("");
+  const [entryPrice, setEntryPrice] = useState<number>(0);
+  const [exitPrice, setExitPrice] = useState<number>(0);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("/api/products")
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setAllProducts(data);
+        }
+      })
+      .catch(console.error);
+  }, []);
 
   const fetchPrices = useCallback(async () => {
     try {
@@ -111,110 +129,167 @@ export default function RiskConsolePage() {
       capitalDeployed,
       availableCapital,
       riskInMarket,
-      marginUsedPct,
+      marginUsedPct: marginUsedPct.toFixed(3),
     };
   }, [enrichedTrades]);
 
+  const selectedProductMeta = useMemo(() => {
+    return allProducts.find((p) => p.code === selectedProduct);
+  }, [allProducts, selectedProduct]);
+
+  const maxLots = useMemo(() => {
+    if (!selectedProductMeta || !entryPrice || !exitPrice || riskAmount <= 0) return 0;
+
+    const tickSize = selectedProductMeta.tick_size || 0.01;
+    const tickValue = selectedProductMeta.tick_value || 1;
+
+    const priceDiff = Math.abs(entryPrice - exitPrice);
+    const ticks = priceDiff / tickSize;
+    if (ticks === 0) return 0;
+
+    const riskPerContract = ticks * tickValue;
+    if (riskPerContract === 0) return 0;
+
+    return Math.floor(riskAmount / riskPerContract);
+  }, [selectedProductMeta, entryPrice, exitPrice, riskAmount]);
+
   return (
-    <div className="p-6 space-y-6">
+    <div className="flex flex-col gap-6 p-6">
       <header>
-        <h1 className="text-2xl font-semibold">Risk Console</h1>
-        <p className="text-sm text-muted-foreground">Live overview of open trades and risk from the trade log.</p>
+        <PageIntro>Live overview of open trades and risk from the trade log.</PageIntro>
       </header>
 
-      {error && <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
-
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 bg-white rounded shadow">
-          <div className="text-xs text-muted-foreground">Capital</div>
-          <div className="text-xl font-medium">{`$${TOTAL_CAPITAL.toLocaleString()}`}</div>
+      {error && (
+        <div className="rounded-md border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400">
+          {error}
         </div>
+      )}
 
-        <div className="p-4 bg-white rounded shadow">
-          <div className="text-xs text-muted-foreground">Capital Deployed</div>
-          <div className="text-xl font-medium">{`$${summary.capitalDeployed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</div>
-        </div>
+      {/* Summary Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <StatCard label="Capital" value={`$${TOTAL_CAPITAL.toLocaleString()}`} />
+        <StatCard label="Capital Deployed" value={`$${summary.capitalDeployed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
+        <StatCard label="Available Capital" value={`$${summary.availableCapital.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
+        <StatCard label="Risk In Market" value={`$${summary.riskInMarket.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
+        <StatCard label="Open Positions" value={summary.openPositions} />
+        <StatCard label="Margin Used" value={`${summary.marginUsedPct}%`} />
+      </div>
 
-        <div className="p-4 bg-white rounded shadow">
-          <div className="text-xs text-muted-foreground">Available Capital</div>
-          <div className="text-xl font-medium">{`$${summary.availableCapital.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</div>
-        </div>
-
-        <div className="p-4 bg-white rounded shadow">
-          <div className="text-xs text-muted-foreground">Risk In Market</div>
-          <div className="text-xl font-medium">{`$${summary.riskInMarket.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</div>
-        </div>
-
-        <div className="p-4 bg-white rounded shadow">
-          <div className="text-xs text-muted-foreground">Open Positions</div>
-          <div className="text-xl font-medium">{summary.openPositions}</div>
-        </div>
-
-        <div className="p-4 bg-white rounded shadow">
-          <div className="text-xs text-muted-foreground">Margin Used</div>
-          <div className="text-xl font-medium">{summary.marginUsedPct}%</div>
-        </div>
-      </section>
-
-      <section className="bg-white rounded shadow p-4">
+      {/* Section 2: Open Trades */}
+      <Card>
         <div className="flex items-center justify-between gap-4 mb-3">
-          <div>
-            <h2 className="text-lg font-semibold">Open Trades</h2>
-            <p className="text-sm text-muted-foreground">Trades are loaded from the canonical trade log.</p>
-          </div>
-          <div className="text-sm text-muted-foreground">{loading ? "Refreshing..." : `${enrichedTrades.length} open trades`}</div>
+          <SectionHeader title="Open Trades" />
+          <div className="text-sm text-muted">{loading ? "Refreshing..." : `${enrichedTrades.length} open trades`}</div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="text-sm text-muted-foreground">
-                <th className="py-2">ID</th>
-                <th>Instrument</th>
-                <th>Side</th>
-                <th>Size</th>
-                <th>Entry</th>
-                <th>Mark</th>
-                <th>P&L</th>
-                <th>Opened</th>
+              <tr className="text-sm border-b border-border" style={{ color: 'var(--muted)' }}>
+                <th className="py-2 px-2 font-normal">ID</th>
+                <th className="py-2 px-2 font-normal">Instrument</th>
+                <th className="py-2 px-2 font-normal">Side</th>
+                <th className="py-2 px-2 font-normal">Size</th>
+                <th className="py-2 px-2 font-normal">Entry</th>
+                <th className="py-2 px-2 font-normal">Mark</th>
+                <th className="py-2 px-2 font-normal">P&L</th>
+                <th className="py-2 px-2 font-normal">Opened</th>
               </tr>
             </thead>
             <tbody>
               {enrichedTrades.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-6 text-center text-sm text-muted-foreground">No open trades found in the trade log.</td>
+                  <td colSpan={8} className="py-6 text-center text-sm border-b border-border" style={{ color: 'var(--muted)' }}>
+                    No open trades found in the trade log.
+                  </td>
                 </tr>
               )}
               {enrichedTrades.map((trade) => (
-                <tr key={trade.id} className="border-t">
-                  <td className="py-2 text-sm">{trade.id}</td>
-                  <td className="font-medium">{trade.symbol}</td>
-                  <td className={trade.side === "LONG" ? "text-green-600" : "text-red-600"}>{trade.side}</td>
-                  <td>{trade.size}</td>
-                  <td>{trade.entry}</td>
-                  <td>{trade.mark}</td>
-                  <td className={`${trade.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>{trade.pnl >= 0 ? `+$${trade.pnl.toFixed(2)}` : `-$${Math.abs(trade.pnl).toFixed(2)}`}</td>
-                  <td className="text-sm text-muted-foreground">{trade.openedAt ? new Date(trade.openedAt).toLocaleString() : "—"}</td>
+                <tr key={trade.id} className="border-b border-border text-sm">
+                  <td className="py-2 px-2" style={{ color: 'var(--muted)' }}>{trade.id}</td>
+                  <td className="py-2 px-2 font-medium">{trade.symbol}</td>
+                  <td className={`py-2 px-2 ${trade.side === "LONG" ? "text-green-500" : "text-red-500"}`}>{trade.side}</td>
+                  <td className="py-2 px-2">{trade.size}</td>
+                  <td className="py-2 px-2">{trade.entry}</td>
+                  <td className="py-2 px-2">{trade.mark}</td>
+                  <td className={`py-2 px-2 ${trade.pnl >= 0 ? "text-green-500" : "text-red-500"}`}>
+                    {trade.pnl >= 0 ? `+$${trade.pnl.toFixed(2)}` : `-$${Math.abs(trade.pnl).toFixed(2)}`}
+                  </td>
+                  <td className="py-2 px-2" style={{ color: 'var(--muted)' }}>
+                    {trade.openedAt ? new Date(trade.openedAt).toLocaleString() : "—"}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </section>
+      </Card>
 
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white rounded shadow p-4 min-h-[200px]">
-          <h3 className="font-semibold mb-2">Position Monitor</h3>
-          <p className="text-sm text-muted-foreground">Live position exposures are built from open trades and live prices.</p>
-          <div className="mt-4 border rounded p-3 text-center text-sm text-muted-foreground">The trade log is the source of truth.</div>
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card>
+          <SectionHeader title="Position Monitor" />
+          <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>Live position exposures are built from open trades and live prices.</p>
+          <div className="border border-border rounded p-3 text-center text-sm flex items-center justify-center min-h-[100px]" style={{ color: 'var(--muted)' }}>
+            The trade log is the source of truth.
+          </div>
+        </Card>
 
-        <div className="bg-white rounded shadow p-4 min-h-[200px]">
-          <h3 className="font-semibold mb-2">Risk Calculator</h3>
-          <p className="text-sm text-muted-foreground">Quick sizing and impact analysis on the current open book.</p>
-          <div className="mt-4 border rounded p-3 text-center text-sm text-muted-foreground">Live risk calculator will reflect actual trade log positions.</div>
-        </div>
-      </section>
+        <Card>
+          <SectionHeader title="Risk Calculator" />
+
+          <div className="space-y-4 mt-4">
+            <div>
+              <label className="block text-sm mb-1" style={{ color: 'var(--muted)' }}>Risk Amount ($)</label>
+              <input
+                type="number"
+                className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none"
+                style={{ backgroundColor: 'var(--bg3)' }}
+                value={riskAmount || ''}
+                onChange={(e) => setRiskAmount(Number(e.target.value))}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm mb-1" style={{ color: 'var(--muted)' }}>Product</label>
+              <Select
+                value={selectedProduct}
+                onChange={setSelectedProduct}
+                options={[{ label: "-- Select Product --", value: "" }, ...allProducts.map(p => ({ label: p.code, value: p.code }))]}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm mb-1" style={{ color: 'var(--muted)' }}>Entry Price</label>
+                <input
+                  type="number"
+                  className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none"
+                  style={{ backgroundColor: 'var(--bg3)' }}
+                  value={entryPrice || ''}
+                  onChange={(e) => setEntryPrice(Number(e.target.value))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm mb-1" style={{ color: 'var(--muted)' }}>Exit (Stop) Price</label>
+                <input
+                  type="number"
+                  className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none"
+                  style={{ backgroundColor: 'var(--bg3)' }}
+                  value={exitPrice || ''}
+                  onChange={(e) => setExitPrice(Number(e.target.value))}
+                />
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-border mt-6">
+              <div className="flex justify-between items-center">
+                <span className="text-sm" style={{ color: 'var(--muted)' }}>Max Lots</span>
+                <span className="text-xl font-semibold" style={{ color: 'var(--accent)' }}>{maxLots}</span>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }
