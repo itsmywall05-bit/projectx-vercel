@@ -78,6 +78,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "No valid price rows found" }, { status: 400 });
         }
 
+        // Deduplicate by price_key to avoid "ON CONFLICT DO UPDATE command cannot affect row a second time"
         const uniqueRowsMap = new Map();
         for (const row of rows) {
             uniqueRowsMap.set(row.price_key, row);
