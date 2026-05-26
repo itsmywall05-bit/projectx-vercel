@@ -78,9 +78,15 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "No valid price rows found" }, { status: 400 });
         }
 
+        const uniqueRowsMap = new Map();
+        for (const row of rows) {
+            uniqueRowsMap.set(row.price_key, row);
+        }
+        const uniqueRows = Array.from(uniqueRowsMap.values());
+
         const { data: inserted, error } = await supabaseAdmin
             .from("price_feed")
-            .upsert(rows, { onConflict: "price_key" })
+            .upsert(uniqueRows, { onConflict: "price_key" })
             .select();
 
         if (error) {
