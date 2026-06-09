@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function TDForm({ onSaved }: { onSaved?: () => void }) {
+    const router = useRouter();
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [tags, setTags] = useState("");
@@ -19,6 +21,7 @@ export default function TDForm({ onSaved }: { onSaved?: () => void }) {
             const data = await res.json();
             if (!res.ok) throw new Error(data?.error || 'Failed');
             setTitle(''); setDescription(''); setTags(''); setPriority('medium');
+            router.refresh();
             onSaved && onSaved();
         } catch (err) {
             alert('Unable to save TD: ' + String(err));

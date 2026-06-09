@@ -83,11 +83,17 @@ export type DeferredItem = {
 };
 
 // ─── Backlog ────────────────────────────────────────────────────
+export type BacklogPriority = "low" | "medium" | "high";
+
 export type BacklogItem = {
   id: string;
   title: string;
   category: string;
   status: "idea" | "in_progress" | "done";
+  priority: BacklogPriority | null;
+  entry_date: string | null;
+  notes: string | null;
+  tags: string[] | null;
 };
 
 // ─── Feedback ───────────────────────────────────────────────────

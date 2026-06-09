@@ -3,113 +3,87 @@ export const dynamic = 'force-dynamic';
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { normalizePriceKey } from "@/lib/pricing";
 
+// Fields currently fetched from Excel.
+// To add a field: add it here and in the VBA COLUMN_MAP, then run the SQL migration.
 export type ExcelPriceUpdate = {
-    instrument?: string;
-    symbol?: string;
     product?: string;
     anchor_month?: string;
+    exchange?: string;
     last?: number;
     change?: number;
     settle?: number;
-    price?: number;
 };
 
 export type StoredPriceRecord = {
     price_key: string;
-    instrument?: string | null;
-    symbol?: string | null;
     product?: string | null;
     anchor_month?: string | null;
+    exchange?: string | null;
     last: number;
-    change: number | null;
-    settle: number | null;
+    change?: number | null;
+    settle?: number | null;
     updated_at: string;
 };
 
-function createStoredRow(payload: ExcelPriceUpdate): Omit<StoredPriceRecord, "price_key"> | null {
-    const last = typeof payload.last === "number" ? payload.last : typeof payload.price === "number" ? payload.price : undefined;
-    if (last === undefined) return null;
-
-    return {
-        instrument: typeof payload.instrument === "string" && payload.instrument.trim() ? payload.instrument.trim() : null,
-        symbol: typeof payload.symbol === "string" && payload.symbol.trim() ? payload.symbol.trim() : null,
-        product: typeof payload.product === "string" && payload.product.trim() ? payload.product.trim() : null,
-        anchor_month: typeof payload.anchor_month === "string" && payload.anchor_month.trim() ? payload.anchor_month.trim() : null,
-        last,
-        change: typeof payload.change === "number" ? payload.change : null,
-        settle: typeof payload.settle === "number" ? payload.settle : null,
-        updated_at: new Date().toISOString(),
-    };
+function str(v: unknown): string | null {
+    return typeof v === "string" && v.trim() ? v.trim() : null;
 }
-
-function buildPriceRows(update: ExcelPriceUpdate) {
-    const baseRow = createStoredRow(update);
-    if (!baseRow) return [];
-
-    const rows: Array<Omit<StoredPriceRecord, "price_key"> & { price_key: string }> = [];
-    const instrumentKey = typeof update.instrument === "string" && update.instrument.trim();
-    const symbolKey = typeof update.symbol === "string" && update.symbol.trim();
-    const productKey = typeof update.product === "string" && update.product.trim();
-    const anchorMonthKey = typeof update.anchor_month === "string" && update.anchor_month.trim();
-
-    if (instrumentKey) {
-        rows.push({ price_key: normalizePriceKey(update.instrument!), ...baseRow });
-    }
-    if (symbolKey) {
-        rows.push({ price_key: normalizePriceKey(update.symbol!), ...baseRow });
-    }
-    if (productKey && anchorMonthKey) {
-        rows.push({ price_key: normalizePriceKey(`${update.product} ${update.anchor_month}`), ...baseRow });
-        if (symbolKey) {
-            rows.push({ price_key: normalizePriceKey(`${update.product} ${update.anchor_month} ${update.symbol}`), ...baseRow });
-        }
-    }
-
-    return rows;
+function num(v: unknown): number | null {
+    return typeof v === "number" && isFinite(v) ? v : null;
 }
 
 export async function POST(req: Request) {
     try {
         const data = await req.json();
-        const updates = Array.isArray(data) ? data : [data];
+        const updates: ExcelPriceUpdate[] = Array.isArray(data) ? data : [data];
 
-        const rows = updates.flatMap((update) => buildPriceRows(update));
+        const rows: (StoredPriceRecord)[] = [];
+        for (const u of updates) {
+            const last = num(u.last);
+            const product = str(u.product);
+            const anchorMonth = str(u.anchor_month);
+            if (last === null || !product || !anchorMonth) continue;
+
+            const price_key = normalizePriceKey(`${product} ${anchorMonth}`);
+            rows.push({
+                price_key,
+                product,
+                anchor_month: anchorMonth,
+                exchange: str(u.exchange),
+                last,
+                change: num(u.change),
+                settle: num(u.settle),
+                updated_at: new Date().toISOString(),
+            });
+        }
+
         if (rows.length === 0) {
-            return NextResponse.json({ error: "No valid price rows found" }, { status: 400 });
+            return NextResponse.json({ error: "No valid price rows" }, { status: 400 });
         }
 
-        // Deduplicate by price_key to avoid "ON CONFLICT DO UPDATE command cannot affect row a second time"
-        const uniqueRowsMap = new Map();
-        for (const row of rows) {
-            uniqueRowsMap.set(row.price_key, row);
-        }
-        const uniqueRows = Array.from(uniqueRowsMap.values());
+        // Deduplicate — last writer wins per price_key
+        const unique = Array.from(new Map(rows.map((r) => [r.price_key, r])).values());
 
         const { data: inserted, error } = await supabaseAdmin
             .from("price_feed")
-            .upsert(uniqueRows, { onConflict: "price_key" })
+            .upsert(unique, { onConflict: "price_key" })
             .select();
 
-        if (error) {
-            return NextResponse.json({ error: error.message }, { status: 500 });
-        }
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-        return NextResponse.json({ success: true, count: rows.length, data: inserted });
-    } catch (e) {
+        return NextResponse.json({ success: true, count: unique.length, data: inserted });
+    } catch {
         return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 }
 
 export async function GET() {
     const { data, error } = await supabaseAdmin.from("price_feed").select("*");
-    if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
     const priceMap: Record<string, StoredPriceRecord> = {};
     (data ?? []).forEach((row) => {
-        if (!row?.price_key) return;
-        priceMap[row.price_key] = row as StoredPriceRecord;
+        if (row?.price_key) priceMap[row.price_key] = row as StoredPriceRecord;
     });
 
     return NextResponse.json(priceMap);

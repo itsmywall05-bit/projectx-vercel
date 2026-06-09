@@ -73,7 +73,7 @@ export async function getDeferredItems(): Promise<DeferredItem[]> {
 }
 
 export async function getBacklogItems(): Promise<BacklogItem[]> {
-  return fetchOrSeed<BacklogItem>("backlog_items", { column: "title" }, SEED_BACKLOG);
+  return fetchOrSeed<BacklogItem>("backlog_items", { column: "created_at", ascending: false }, SEED_BACKLOG);
 }
 
 export async function getFeedbackEntries(): Promise<FeedbackEntry[]> {

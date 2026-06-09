@@ -1,5 +1,6 @@
 import { PageIntro, SectionHeader, Card } from "@/components/ui";
 import TDForm from "@/components/backlog/TDForm";
+import BacklogList from "@/components/backlog/BacklogList";
 import { getBacklogItems } from "@/lib/data/queries";
 
 export default async function BacklogPage() {
@@ -12,13 +13,7 @@ export default async function BacklogPage() {
       <SectionHeader title="Feature Ideas" sub={`${items.length} ideas`} />
 
       <Card>
-        {items.map((item) => (
-          <div key={item.id} className="bl">
-            <div className="bl-box" />
-            <div className="bl-t">{item.title}</div>
-            <div className="bl-c">{item.category}</div>
-          </div>
-        ))}
+        <BacklogList items={items} />
       </Card>
 
       <div className="mt-6">

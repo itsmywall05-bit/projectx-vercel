@@ -186,7 +186,6 @@ export default function RiskConsolePage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="text-sm border-b border-border" style={{ color: 'var(--muted)' }}>
-                <th className="py-2 px-2 font-normal">ID</th>
                 <th className="py-2 px-2 font-normal">Instrument</th>
                 <th className="py-2 px-2 font-normal">Side</th>
                 <th className="py-2 px-2 font-normal">Size</th>
@@ -199,14 +198,13 @@ export default function RiskConsolePage() {
             <tbody>
               {enrichedTrades.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-6 text-center text-sm border-b border-border" style={{ color: 'var(--muted)' }}>
+                  <td colSpan={7} className="py-6 text-center text-sm border-b border-border" style={{ color: 'var(--muted)' }}>
                     No open trades found in the trade log.
                   </td>
                 </tr>
               )}
               {enrichedTrades.map((trade) => (
                 <tr key={trade.id} className="border-b border-border text-sm">
-                  <td className="py-2 px-2" style={{ color: 'var(--muted)' }}>{trade.id}</td>
                   <td className="py-2 px-2 font-medium">{trade.symbol}</td>
                   <td className={`py-2 px-2 ${trade.side === "LONG" ? "text-green-500" : "text-red-500"}`}>{trade.side}</td>
                   <td className="py-2 px-2">{trade.size}</td>
@@ -228,10 +226,36 @@ export default function RiskConsolePage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <SectionHeader title="Position Monitor" />
-          <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>Live position exposures are built from open trades and live prices.</p>
-          <div className="border border-border rounded p-3 text-center text-sm flex items-center justify-center min-h-[100px]" style={{ color: 'var(--muted)' }}>
-            The trade log is the source of truth.
-          </div>
+          <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>Net exposure per instrument from open trades.</p>
+          {enrichedTrades.length === 0 ? (
+            <div className="text-center text-sm py-6" style={{ color: 'var(--muted)' }}>No open positions.</div>
+          ) : (
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="text-sm border-b border-border" style={{ color: 'var(--muted)' }}>
+                  <th className="py-2 px-2 font-normal">Instrument</th>
+                  <th className="py-2 px-2 font-normal text-right">Position</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.values(
+                  enrichedTrades.reduce<Record<string, { symbol: string; net: number }>>((acc, t) => {
+                    const key = t.symbol;
+                    if (!acc[key]) acc[key] = { symbol: t.symbol, net: 0 };
+                    acc[key].net += t.side === "LONG" ? t.size : -t.size;
+                    return acc;
+                  }, {})
+                ).map((pos) => (
+                  <tr key={pos.symbol} className="border-b border-border text-sm">
+                    <td className="py-2 px-2 font-medium">{pos.symbol}</td>
+                    <td className={`py-2 px-2 text-right font-mono ${pos.net > 0 ? "text-green-500" : pos.net < 0 ? "text-red-500" : ""}`}>
+                      {pos.net > 0 ? `+${pos.net}` : pos.net}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </Card>
 
         <Card>
