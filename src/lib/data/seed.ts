@@ -191,18 +191,18 @@ export const SEED_DEFERRED: DeferredItem[] = [
 
 // ─── Backlog (12) ───────────────────────────────────────────────
 export const SEED_BACKLOG: BacklogItem[] = [
-  { id: "seed-b-1", title: "Playbook — aggressive bearish outright → mirror of Rule 01", category: "Playbook", status: "idea" },
-  { id: "seed-b-2", title: "ORB range size classifier — small/medium/large range behavior", category: "Strategy", status: "idea" },
-  { id: "seed-b-3", title: "VWAP regime filter — auto-detect ranging vs trending before trade", category: "Strategy", status: "idea" },
-  { id: "seed-b-4", title: "Trade Replay — annotate a past trade step-by-step", category: "Journal", status: "idea" },
-  { id: "seed-b-5", title: "Rule Violation Log — when own rules were broken and why", category: "Discipline", status: "idea" },
-  { id: "seed-b-6", title: "Streak Tracker — good process streaks, not just P&L streaks", category: "Performance", status: "idea" },
-  { id: "seed-b-7", title: "Weekly Pre-Game — structured Monday planning template", category: "Planning", status: "idea" },
-  { id: "seed-b-8", title: "Capital Allocation Map — deployed vs available at a glance", category: "Risk", status: "idea" },
-  { id: "seed-b-9", title: "Correlation Tracker — fly vs spread vs outright exposure overlap", category: "Risk", status: "idea" },
-  { id: "seed-b-10", title: "Scenario Planner — if X market event, then Y response (pre-commitment)", category: "Playbook", status: "idea" },
-  { id: "seed-b-11", title: "EIA / FOMC calendar integration with market context", category: "Market Context", status: "idea" },
-  { id: "seed-b-12", title: "Outright aggression quantification — define measurable trigger for Playbook Rule 1", category: "Playbook", status: "idea" },
+  { id: "seed-b-1",  title: "Playbook — aggressive bearish outright → mirror of Rule 01",                      category: "Playbook",       status: "idea", priority: "medium", entry_date: null, notes: null, tags: [] },
+  { id: "seed-b-2",  title: "ORB range size classifier — small/medium/large range behavior",                   category: "Strategy",       status: "idea", priority: "medium", entry_date: null, notes: null, tags: [] },
+  { id: "seed-b-3",  title: "VWAP regime filter — auto-detect ranging vs trending before trade",               category: "Strategy",       status: "idea", priority: "medium", entry_date: null, notes: null, tags: [] },
+  { id: "seed-b-4",  title: "Trade Replay — annotate a past trade step-by-step",                              category: "Journal",        status: "idea", priority: "medium", entry_date: null, notes: null, tags: [] },
+  { id: "seed-b-5",  title: "Rule Violation Log — when own rules were broken and why",                        category: "Discipline",     status: "idea", priority: "medium", entry_date: null, notes: null, tags: [] },
+  { id: "seed-b-6",  title: "Streak Tracker — good process streaks, not just P&L streaks",                   category: "Performance",    status: "idea", priority: "medium", entry_date: null, notes: null, tags: [] },
+  { id: "seed-b-7",  title: "Weekly Pre-Game — structured Monday planning template",                          category: "Planning",       status: "idea", priority: "medium", entry_date: null, notes: null, tags: [] },
+  { id: "seed-b-8",  title: "Capital Allocation Map — deployed vs available at a glance",                     category: "Risk",           status: "idea", priority: "medium", entry_date: null, notes: null, tags: [] },
+  { id: "seed-b-9",  title: "Correlation Tracker — fly vs spread vs outright exposure overlap",               category: "Risk",           status: "idea", priority: "medium", entry_date: null, notes: null, tags: [] },
+  { id: "seed-b-10", title: "Scenario Planner — if X market event, then Y response (pre-commitment)",         category: "Playbook",       status: "idea", priority: "medium", entry_date: null, notes: null, tags: [] },
+  { id: "seed-b-11", title: "EIA / FOMC calendar integration with market context",                            category: "Market Context", status: "idea", priority: "medium", entry_date: null, notes: null, tags: [] },
+  { id: "seed-b-12", title: "Outright aggression quantification — define measurable trigger for Playbook Rule 1", category: "Playbook",  status: "idea", priority: "medium", entry_date: null, notes: null, tags: [] },
 ];
 
 // ─── Feedback (3) ───────────────────────────────────────────────
