@@ -17,6 +17,7 @@ export type ExcelPriceUpdate = {
 
 export type StoredPriceRecord = {
     price_key: string;
+    instrument?: string | null;
     symbol?: string | null;
     product?: string | null;
     anchor_month?: string | null;
@@ -68,8 +69,12 @@ export async function POST(req: Request) {
                 ? normalizePriceKey(symbol)
                 : normalizePriceKey(`${product} ${anchorMonth}`);
 
+            // instrument = human-readable label, e.g. "CL Jul26"
+            const instrument = `${product} ${anchorMonth}`;
+
             rows.push({
                 price_key,
+                instrument,
                 symbol,
                 product,
                 anchor_month: anchorMonth,

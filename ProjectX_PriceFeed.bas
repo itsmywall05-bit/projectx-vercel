@@ -39,6 +39,7 @@ Private Const HDR_ROW   As Integer = 3          ' header row (data starts at HDR
 ' To SKIP a field: set its constant to 0.
 ' To ADD a field: add a Const here and handle it in BuildRow().
 Private Const COL_PROD   As Integer = 1    ' A  Product Code       ← required
+Private Const COL_TYPE   As Integer = 2    ' B  Instrument Type    ← filter: only "Outright"
 Private Const COL_SYM    As Integer = 4    ' D  Symbol (TT name)   ← price_key (e.g. CLN6)
 Private Const COL_ANCH   As Integer = 3    ' C  Anchor Month       ← required
 Private Const COL_EXCH   As Integer = 5    ' E  Exchange
@@ -174,6 +175,11 @@ Private Function DoPush() As String
     For r = HDR_ROW + 1 To lastRow
         ' Skip non-ACTIVE rows
         If UCase(Trim(CStr(ws.Cells(r, COL_STAT).Value))) <> "ACTIVE" Then GoTo NextRow
+
+        ' Skip non-Outright rows (Spread, Fly, etc.)
+        If COL_TYPE > 0 Then
+            If UCase(Trim(CStr(ws.Cells(r, COL_TYPE).Value))) <> "OUTRIGHT" Then GoTo NextRow
+        End If
 
         Dim obj As String
         obj = BuildRow(ws, r)
