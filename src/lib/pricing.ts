@@ -5,6 +5,12 @@ export type PriceRecord = {
     change: number | null;
     settle: number | null;
     updated_at: string;
+    // Extra fields present when fetched from /api/prices
+    symbol?: string | null;
+    product?: string | null;
+    anchor_month?: string | null;
+    expiry_date?: string | null;
+    instrument?: string | null;
 };
 
 export type LivePrices = Record<string, number | PriceRecord>;

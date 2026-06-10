@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { PageIntro, StubPage } from "@/components/ui";
 import CurvePlot from "@/components/CurvePlot";
+import DeltaMatrix from "@/components/DeltaMatrix";
 
 type PriceEntry = {
   key: string;
@@ -74,12 +75,7 @@ export default function WatchlistPage() {
     <>
       <PageIntro>What you&apos;re watching. What must happen before you act.</PageIntro>
 
-      <StubPage
-        icon="◓"
-        title="Watchlist Engine"
-        phase="Phase 2"
-        text="Assets on radar with thesis and trigger conditions. For CL: specific spread levels, fly curvature setups, outright areas of interest."
-      />
+      <DeltaMatrix />
 
       <section style={{ marginTop: 24 }}>
         <h2 style={{ fontSize: 18, marginBottom: 8 }}>Curve Shapes</h2>
