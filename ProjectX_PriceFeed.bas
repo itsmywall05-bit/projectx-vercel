@@ -39,6 +39,7 @@ Private Const HDR_ROW   As Integer = 3          ' header row (data starts at HDR
 ' To SKIP a field: set its constant to 0.
 ' To ADD a field: add a Const here and handle it in BuildRow().
 Private Const COL_PROD   As Integer = 1    ' A  Product Code       ← required
+Private Const COL_SYM    As Integer = 4    ' D  Symbol (TT name)   ← price_key (e.g. CLN6)
 Private Const COL_ANCH   As Integer = 3    ' C  Anchor Month       ← required
 Private Const COL_EXCH   As Integer = 5    ' E  Exchange
 Private Const COL_STAT   As Integer = 8    ' H  Status (ACTIVE / EXPIRED)  ← filter
@@ -221,8 +222,13 @@ Private Function BuildRow(ws As Worksheet, r As Long) As String
         Exit Function
     End If
 
+    ' Symbol (TT instrument name) — used as price_key on the server
+    Dim sym As String
+    If COL_SYM > 0 Then sym = Trim(CStr(ws.Cells(r, COL_SYM).Value))
+
     Dim obj As String
     obj = "{"
+    If sym <> "" Then obj = obj & Q("symbol") & ":" & Q(Esc(sym)) & ","
     obj = obj & Q("product") & ":" & Q(Esc(prod))
     obj = obj & "," & Q("anchor_month") & ":" & Q(Esc(anch))
     obj = obj & "," & Q("last") & ":" & CStr(CDbl(lastVal))
