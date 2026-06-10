@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { getAllStrategies, type TaxonomyStrategy } from "@/lib/taxonomy";
-import { getLivePriceForTrade, normalizePriceKey, type PriceRecord } from "@/lib/pricing";
+import { useLivePrices } from "@/hooks/useLivePrices";
 import { Card, StatCard, PageIntro, SectionHeader, Select } from "@/components/ui";
 
 type TradeRecord = {
@@ -17,60 +16,38 @@ type TradeRecord = {
   risk_lt?: number | null;
   date?: string;
   created_at?: string;
-  products?: {
-    tick_size: number;
-    tick_value: number;
-  } | null;
+  products?: { tick_size: number; tick_value: number } | null;
 };
 
 const TOTAL_CAPITAL = 10000;
 
 export default function RiskConsolePage() {
   const [trades, setTrades] = useState<TradeRecord[]>([]);
-  const [prices, setPrices] = useState<Record<string, number | PriceRecord>>({});
-  const [strategies, setStrategies] = useState<TaxonomyStrategy[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const [riskAmount, setRiskAmount] = useState<number>(100);
   const [selectedProduct, setSelectedProduct] = useState<string>("");
   const [entryPrice, setEntryPrice] = useState<number>(0);
   const [exitPrice, setExitPrice] = useState<number>(0);
-  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [allProducts, setAllProducts] = useState<{ code: string; tick_size: number; tick_value: number }[]>([]);
+
+  // Live prices + derived instrument pricing from the shared hook
+  const { getInstrumentPrice } = useLivePrices();
 
   useEffect(() => {
     fetch("/api/products")
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setAllProducts(data);
-        }
-      })
+      .then((r) => r.json())
+      .then((d) => { if (Array.isArray(d)) setAllProducts(d); })
       .catch(console.error);
-  }, []);
-
-  const fetchPrices = useCallback(async () => {
-    try {
-      const res = await fetch("/api/prices");
-      const data = await res.json();
-      setPrices(data ?? {});
-      setError(null);
-    } catch (err) {
-      setError("Unable to load live prices");
-    }
   }, []);
 
   const fetchTrades = useCallback(async () => {
     try {
       const res = await fetch("/api/trades");
       const data = await res.json();
-      if (Array.isArray(data)) {
-        setTrades(data.filter((trade) => !trade.exit_price));
-      } else {
-        setTrades([]);
-      }
+      setTrades(Array.isArray(data) ? data.filter((t) => !t.exit_price) : []);
       setError(null);
-    } catch (err) {
+    } catch {
       setError("Unable to load trades");
       setTrades([]);
     } finally {
@@ -79,78 +56,52 @@ export default function RiskConsolePage() {
   }, []);
 
   useEffect(() => {
-    getAllStrategies().then(setStrategies).catch(() => setStrategies([]));
     fetchTrades();
-    fetchPrices();
-    const interval = setInterval(() => {
-      fetchTrades();
-      fetchPrices();
-    }, 3000);
+    const interval = setInterval(fetchTrades, 3000);
     return () => clearInterval(interval);
-  }, [fetchTrades, fetchPrices]);
-
-  const normalizedPrices = useMemo(() => {
-    const normalized: Record<string, number> = {};
-    Object.entries(prices).forEach(([key, value]) => {
-      normalized[normalizePriceKey(key)] = typeof value === "number" ? value : value.last;
-    });
-    return normalized;
-  }, [prices]);
+  }, [fetchTrades]);
 
   const enrichedTrades = useMemo(() => {
     return trades.map((trade) => {
-      const currentPrice = getLivePriceForTrade(trade.instrument, trade.product ?? "", normalizedPrices, strategies) ?? trade.entry_price;
+      const mark = getInstrumentPrice(trade.instrument, trade.product ?? "") ?? trade.entry_price;
       const directionFactor = trade.direction?.toLowerCase() === "long" ? 1 : -1;
-      const pnl = Number(((currentPrice - trade.entry_price) * trade.size_contracts * directionFactor).toFixed(2));
-
+      const pnl = Number(((mark - trade.entry_price) * trade.size_contracts * directionFactor).toFixed(2));
       return {
         id: trade.id,
         symbol: trade.instrument,
         side: trade.direction?.toUpperCase() === "SHORT" ? "SHORT" : "LONG",
         size: trade.size_contracts,
         entry: trade.entry_price,
-        mark: currentPrice,
+        mark,
         pnl,
         openedAt: trade.date || trade.created_at || "",
       };
     });
-  }, [trades, normalizedPrices, strategies]);
+  }, [trades, getInstrumentPrice]);
 
   const summary = useMemo(() => {
-    const totalPnl = enrichedTrades.reduce((sum, trade) => sum + trade.pnl, 0);
-    const capitalDeployed = enrichedTrades.reduce((sum, trade) => sum + Math.abs(trade.entry * trade.size), 0);
-    const riskInMarket = enrichedTrades.reduce((sum, trade) => sum + Math.abs(trade.pnl), 0);
-    const availableCapital = Math.max(0, TOTAL_CAPITAL - capitalDeployed);
-    const marginUsedPct = Math.min(100, (capitalDeployed / TOTAL_CAPITAL) * 100);
-
+    const capitalDeployed = enrichedTrades.reduce((s, t) => s + Math.abs(t.entry * t.size), 0);
+    const riskInMarket = enrichedTrades.reduce((s, t) => s + Math.abs(t.pnl), 0);
     return {
-      totalPnl,
       openPositions: enrichedTrades.length,
       capitalDeployed,
-      availableCapital,
+      availableCapital: Math.max(0, TOTAL_CAPITAL - capitalDeployed),
       riskInMarket,
-      marginUsedPct: marginUsedPct.toFixed(3),
+      marginUsedPct: Math.min(100, (capitalDeployed / TOTAL_CAPITAL) * 100).toFixed(3),
     };
   }, [enrichedTrades]);
 
-  const selectedProductMeta = useMemo(() => {
-    return allProducts.find((p) => p.code === selectedProduct);
-  }, [allProducts, selectedProduct]);
+  const selectedProductMeta = useMemo(
+    () => allProducts.find((p) => p.code === selectedProduct),
+    [allProducts, selectedProduct],
+  );
 
   const maxLots = useMemo(() => {
     if (!selectedProductMeta || !entryPrice || !exitPrice || riskAmount <= 0) return 0;
-
-    const tickSize = selectedProductMeta.tick_size || 0.01;
-    const tickValue = selectedProductMeta.tick_value || 1;
-
-    const priceDiff = Math.abs(entryPrice - exitPrice);
-    const ticks = priceDiff / tickSize;
+    const ticks = Math.abs(entryPrice - exitPrice) / (selectedProductMeta.tick_size || 0.01);
     if (ticks === 0) return 0;
-
-    const riskPerContract = ticks * tickValue;
-    if (riskPerContract === 0) return 0;
-
-    return Math.floor(riskAmount / riskPerContract);
+    const riskPerContract = ticks * (selectedProductMeta.tick_value || 1);
+    return riskPerContract === 0 ? 0 : Math.floor(riskAmount / riskPerContract);
   }, [selectedProductMeta, entryPrice, exitPrice, riskAmount]);
 
   return (
@@ -160,12 +111,9 @@ export default function RiskConsolePage() {
       </header>
 
       {error && (
-        <div className="rounded-md border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400">
-          {error}
-        </div>
+        <div className="rounded-md border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400">{error}</div>
       )}
 
-      {/* Summary Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         <StatCard label="Capital" value={`$${TOTAL_CAPITAL.toLocaleString()}`} />
         <StatCard label="Capital Deployed" value={`$${summary.capitalDeployed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
@@ -175,17 +123,15 @@ export default function RiskConsolePage() {
         <StatCard label="Margin Used" value={`${summary.marginUsedPct}%`} />
       </div>
 
-      {/* Section 2: Open Trades */}
       <Card>
         <div className="flex items-center justify-between gap-4 mb-3">
           <SectionHeader title="Open Trades" />
           <div className="text-sm text-muted">{loading ? "Refreshing..." : `${enrichedTrades.length} open trades`}</div>
         </div>
-
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="text-sm border-b border-border" style={{ color: 'var(--muted)' }}>
+              <tr className="text-sm border-b border-border" style={{ color: "var(--muted)" }}>
                 <th className="py-2 px-2 font-normal">Instrument</th>
                 <th className="py-2 px-2 font-normal">Side</th>
                 <th className="py-2 px-2 font-normal">Size</th>
@@ -198,7 +144,7 @@ export default function RiskConsolePage() {
             <tbody>
               {enrichedTrades.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="py-6 text-center text-sm border-b border-border" style={{ color: 'var(--muted)' }}>
+                  <td colSpan={7} className="py-6 text-center text-sm border-b border-border" style={{ color: "var(--muted)" }}>
                     No open trades found in the trade log.
                   </td>
                 </tr>
@@ -209,11 +155,11 @@ export default function RiskConsolePage() {
                   <td className={`py-2 px-2 ${trade.side === "LONG" ? "text-green-500" : "text-red-500"}`}>{trade.side}</td>
                   <td className="py-2 px-2">{trade.size}</td>
                   <td className="py-2 px-2">{trade.entry}</td>
-                  <td className="py-2 px-2">{trade.mark}</td>
+                  <td className="py-2 px-2 font-mono font-semibold" style={{ color: "var(--accent)" }}>{trade.mark}</td>
                   <td className={`py-2 px-2 ${trade.pnl >= 0 ? "text-green-500" : "text-red-500"}`}>
                     {trade.pnl >= 0 ? `+$${trade.pnl.toFixed(2)}` : `-$${Math.abs(trade.pnl).toFixed(2)}`}
                   </td>
-                  <td className="py-2 px-2" style={{ color: 'var(--muted)' }}>
+                  <td className="py-2 px-2" style={{ color: "var(--muted)" }}>
                     {trade.openedAt ? new Date(trade.openedAt).toLocaleString() : "—"}
                   </td>
                 </tr>
@@ -226,13 +172,13 @@ export default function RiskConsolePage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <SectionHeader title="Position Monitor" />
-          <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>Net exposure per instrument from open trades.</p>
+          <p className="text-sm mb-4" style={{ color: "var(--muted)" }}>Net exposure per instrument from open trades.</p>
           {enrichedTrades.length === 0 ? (
-            <div className="text-center text-sm py-6" style={{ color: 'var(--muted)' }}>No open positions.</div>
+            <div className="text-center text-sm py-6" style={{ color: "var(--muted)" }}>No open positions.</div>
           ) : (
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="text-sm border-b border-border" style={{ color: 'var(--muted)' }}>
+                <tr className="text-sm border-b border-border" style={{ color: "var(--muted)" }}>
                   <th className="py-2 px-2 font-normal">Instrument</th>
                   <th className="py-2 px-2 font-normal text-right">Position</th>
                 </tr>
@@ -240,11 +186,10 @@ export default function RiskConsolePage() {
               <tbody>
                 {Object.values(
                   enrichedTrades.reduce<Record<string, { symbol: string; net: number }>>((acc, t) => {
-                    const key = t.symbol;
-                    if (!acc[key]) acc[key] = { symbol: t.symbol, net: 0 };
-                    acc[key].net += t.side === "LONG" ? t.size : -t.size;
+                    if (!acc[t.symbol]) acc[t.symbol] = { symbol: t.symbol, net: 0 };
+                    acc[t.symbol].net += t.side === "LONG" ? t.size : -t.size;
                     return acc;
-                  }, {})
+                  }, {}),
                 ).map((pos) => (
                   <tr key={pos.symbol} className="border-b border-border text-sm">
                     <td className="py-2 px-2 font-medium">{pos.symbol}</td>
@@ -260,55 +205,29 @@ export default function RiskConsolePage() {
 
         <Card>
           <SectionHeader title="Risk Calculator" />
-
           <div className="space-y-4 mt-4">
             <div>
-              <label className="block text-sm mb-1" style={{ color: 'var(--muted)' }}>Risk Amount ($)</label>
-              <input
-                type="number"
-                className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none"
-                style={{ backgroundColor: 'var(--bg3)' }}
-                value={riskAmount || ''}
-                onChange={(e) => setRiskAmount(Number(e.target.value))}
-              />
+              <label className="block text-sm mb-1" style={{ color: "var(--muted)" }}>Risk Amount ($)</label>
+              <input type="number" className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none" style={{ backgroundColor: "var(--bg3)" }} value={riskAmount || ""} onChange={(e) => setRiskAmount(Number(e.target.value))} />
             </div>
-
             <div>
-              <label className="block text-sm mb-1" style={{ color: 'var(--muted)' }}>Product</label>
-              <Select
-                value={selectedProduct}
-                onChange={setSelectedProduct}
-                options={[{ label: "-- Select Product --", value: "" }, ...allProducts.map(p => ({ label: p.code, value: p.code }))]}
-              />
+              <label className="block text-sm mb-1" style={{ color: "var(--muted)" }}>Product</label>
+              <Select value={selectedProduct} onChange={setSelectedProduct} options={[{ label: "-- Select Product --", value: "" }, ...allProducts.map((p) => ({ label: p.code, value: p.code }))]} />
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm mb-1" style={{ color: 'var(--muted)' }}>Entry Price</label>
-                <input
-                  type="number"
-                  className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none"
-                  style={{ backgroundColor: 'var(--bg3)' }}
-                  value={entryPrice || ''}
-                  onChange={(e) => setEntryPrice(Number(e.target.value))}
-                />
+                <label className="block text-sm mb-1" style={{ color: "var(--muted)" }}>Entry Price</label>
+                <input type="number" className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none" style={{ backgroundColor: "var(--bg3)" }} value={entryPrice || ""} onChange={(e) => setEntryPrice(Number(e.target.value))} />
               </div>
               <div>
-                <label className="block text-sm mb-1" style={{ color: 'var(--muted)' }}>Exit (Stop) Price</label>
-                <input
-                  type="number"
-                  className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none"
-                  style={{ backgroundColor: 'var(--bg3)' }}
-                  value={exitPrice || ''}
-                  onChange={(e) => setExitPrice(Number(e.target.value))}
-                />
+                <label className="block text-sm mb-1" style={{ color: "var(--muted)" }}>Exit (Stop) Price</label>
+                <input type="number" className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none" style={{ backgroundColor: "var(--bg3)" }} value={exitPrice || ""} onChange={(e) => setExitPrice(Number(e.target.value))} />
               </div>
             </div>
-
             <div className="pt-4 border-t border-border mt-6">
               <div className="flex justify-between items-center">
-                <span className="text-sm" style={{ color: 'var(--muted)' }}>Max Lots</span>
-                <span className="text-xl font-semibold" style={{ color: 'var(--accent)' }}>{maxLots}</span>
+                <span className="text-sm" style={{ color: "var(--muted)" }}>Max Lots</span>
+                <span className="text-xl font-semibold" style={{ color: "var(--accent)" }}>{maxLots}</span>
               </div>
             </div>
           </div>

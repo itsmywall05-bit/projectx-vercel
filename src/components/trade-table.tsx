@@ -2,6 +2,7 @@
 
 import { Fragment, useState } from "react";
 import Select from "@/components/ui/Select";
+import { useLivePrices } from "@/hooks/useLivePrices";
 
 interface Trade {
     id: string;
@@ -51,6 +52,7 @@ function formatTime(ts: string | null) {
 
 export default function TradeTable({ trades, onEdit, onDelete, filters, onFilterChange }: TradeTableProps) {
     const [expandedId, setExpandedId] = useState<string | null>(null);
+    const { getInstrumentPrice, isLive } = useLivePrices();
     const directionOptions = [
         { value: "", label: "All Directions" },
         { value: "Long", label: "Long" },
@@ -123,6 +125,7 @@ export default function TradeTable({ trades, onEdit, onDelete, filters, onFilter
                                 <th className="text-left text-xs tracking-wider uppercase text-muted py-3 px-4 border-b border-border font-semibold">Dir</th>
                                 <th className="text-left text-xs tracking-wider uppercase text-muted py-3 px-4 border-b border-border font-semibold">Entry</th>
                                 <th className="text-left text-xs tracking-wider uppercase text-muted py-3 px-4 border-b border-border font-semibold">Exit</th>
+                                <th className="text-left text-xs tracking-wider uppercase text-muted py-3 px-4 border-b border-border font-semibold">Mark {isLive && <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 ml-1 align-middle" />}</th>
                                 <th className="text-left text-xs tracking-wider uppercase text-muted py-3 px-4 border-b border-border font-semibold">Size</th>
                                 <th className="text-left text-xs tracking-wider uppercase text-muted py-3 px-4 border-b border-border font-semibold">Process</th>
                                 <th className="text-right text-xs tracking-wider uppercase text-muted py-3 px-4 border-b border-border font-semibold">P&L</th>
@@ -132,7 +135,7 @@ export default function TradeTable({ trades, onEdit, onDelete, filters, onFilter
                         <tbody>
                             {trades.length === 0 && (
                                 <tr>
-                                    <td colSpan={9} className="text-center text-muted text-sm py-12 bg-bg3">
+                                    <td colSpan={10} className="text-center text-muted text-sm py-12 bg-bg3">
                                         No trades yet. Add your first trade above.
                                     </td>
                                 </tr>
@@ -156,6 +159,13 @@ export default function TradeTable({ trades, onEdit, onDelete, filters, onFilter
                                             </td>
                                             <td className="px-4 py-3 text-sm text-text2 border-b border-border">{t.entry_price}</td>
                                             <td className="px-4 py-3 text-sm text-text2 border-b border-border">{t.exit_price ?? "—"}</td>
+                                            <td className="px-4 py-3 text-sm border-b border-border font-mono">
+                                                {t.exit_price ? <span className="text-muted">—</span> : (
+                                                    <span className="text-accent font-semibold">
+                                                        {getInstrumentPrice(t.instrument, t.product) ?? <span className="text-muted text-xs">no price</span>}
+                                                    </span>
+                                                )}
+                                            </td>
                                             <td className="px-4 py-3 text-sm text-text2 border-b border-border">{t.size_contracts}</td>
                                             <td className="px-4 py-3 text-sm border-b border-border">
                                                 {t.process_tag && (
@@ -179,7 +189,7 @@ export default function TradeTable({ trades, onEdit, onDelete, filters, onFilter
                                         {/* Expanded detail */}
                                         {isExpanded && (
                                             <tr>
-                                                <td colSpan={9} className="bg-bg2 border-b border-border px-6 py-5 shadow-inner">
+                                                <td colSpan={10} className="bg-bg2 border-b border-border px-6 py-5 shadow-inner">
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                                         <div>
                                                             <div className="text-xs tracking-wider uppercase text-muted mb-2 font-semibold">Assumption</div>
