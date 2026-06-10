@@ -142,7 +142,9 @@ export function getLivePriceForTrade(
     if (directPrice !== undefined) return directPrice;
 
     const parsed = parseInstrumentLabel(tradeInstrument);
-    if (parsed && parsed.product && parsed.anchorMonth) {
+    // Only fall back to outright lookup when there is no strategy suffix — if there
+    // is one (e.g. "1ms", "1MD") we must derive the price, not return the anchor leg.
+    if (parsed && parsed.product && parsed.anchorMonth && !parsed.strategyId) {
         const outrightPrice = getPriceFromMap(buildOutrightPriceKey(parsed.product, parsed.anchorMonth), prices);
         if (outrightPrice !== undefined) return outrightPrice;
     }
