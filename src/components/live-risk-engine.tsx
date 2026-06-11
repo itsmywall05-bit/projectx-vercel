@@ -16,6 +16,7 @@ interface Trade {
     sl_price: number | null;
     risk_lt: number | null;
     size_contracts: number;
+    products: { tick_size: number; tick_value: number } | null;
 }
 
 export default function LiveRiskEngine({ trades }: { trades: Trade[] }) {
@@ -31,8 +32,10 @@ export default function LiveRiskEngine({ trades }: { trades: Trade[] }) {
         openTrades.forEach((t) => {
             const mark = getInstrumentPrice(t.instrument, t.product) ?? t.entry_price;
             const sl = t.sl_price || 0;
-            const openRisk = Math.abs((sl - t.entry_price) * t.size_contracts);
-            const currRisk = Math.abs((sl - mark) * t.size_contracts);
+            const tickSize = t.products?.tick_size || 1;
+            const tickValue = t.products?.tick_value || 1;
+            const openRisk = Math.abs((sl - t.entry_price) / tickSize) * tickValue * t.size_contracts;
+            const currRisk = Math.abs((sl - mark) / tickSize) * tickValue * t.size_contracts;
             const maxRisk = Math.max(openRisk, currRisk);
             totalOpen += openRisk;
             totalCurr += currRisk;
@@ -91,8 +94,10 @@ export default function LiveRiskEngine({ trades }: { trades: Trade[] }) {
                             {openTrades.map((t) => {
                                 const mark = getInstrumentPrice(t.instrument, t.product) ?? t.entry_price;
                                 const sl = t.sl_price || 0;
-                                const openRisk = (sl - t.entry_price) * t.size_contracts;
-                                const currRisk = (sl - mark) * t.size_contracts;
+                                const tickSize = t.products?.tick_size || 1;
+                                const tickValue = t.products?.tick_value || 1;
+                                const openRisk = ((sl - t.entry_price) / tickSize) * tickValue * t.size_contracts;
+                                const currRisk = ((sl - mark) / tickSize) * tickValue * t.size_contracts;
                                 const maxRisk = Math.max(openRisk, currRisk);
                                 const nearLimit = t.risk_lt ? maxRisk >= t.risk_lt * 0.8 : false;
 
@@ -105,7 +110,7 @@ export default function LiveRiskEngine({ trades }: { trades: Trade[] }) {
                                         </td>
                                         <td className="px-4 py-3 text-sm text-text2 border-b border-border">{t.entry_price}</td>
                                         <td className="px-4 py-3 text-sm text-red font-medium border-b border-border">{sl || "—"}</td>
-                                        <td className="px-4 py-3 text-sm font-bold text-accent border-b border-border">{mark}</td>
+                                        <td className="px-4 py-3 text-sm font-bold text-accent border-b border-border">{mark.toFixed(2)}</td>
                                         <td className="px-4 py-3 text-sm text-right font-medium border-b border-border">{openRisk.toFixed(2)}</td>
                                         <td className="px-4 py-3 text-sm text-right font-bold text-amber border-b border-border">{currRisk.toFixed(2)}</td>
                                         <td className="px-4 py-3 text-sm text-right font-medium text-text2 border-b border-border">{maxRisk.toFixed(2)}</td>

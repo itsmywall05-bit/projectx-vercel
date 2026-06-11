@@ -33,7 +33,7 @@ function cellFg(value: number, maxAbs: number): string {
 
 interface Outright {
   anchorMonth: string;
-  price: number;
+  delta: number | null; // last - settle; null when settle is unavailable
   code: string;
   expiryDate: string;
 }
@@ -64,9 +64,12 @@ export default function DeltaMatrix() {
       const key = (rec.anchor_month as string).toUpperCase();
       if (seen.has(key)) return;
       seen.add(key);
+      const full = v as { last?: number; settle?: number | null };
+      const last = Number(full.last ?? 0);
+      const settle = full.settle != null ? Number(full.settle) : null;
       result.push({
         anchorMonth: rec.anchor_month as string,
-        price: Number((v as { last?: number }).last ?? 0),
+        delta: settle !== null ? Math.round((last - settle) * 10000) / 10000 : null,
         code: toFuturesCode(rec.anchor_month as string),
         expiryDate: rec.expiry_date as string,
       });
@@ -74,9 +77,10 @@ export default function DeltaMatrix() {
     return result.sort((a, b) => a.expiryDate.localeCompare(b.expiryDate));
   }, [rawPrices, selectedProduct]);
 
-  const priceByMonth = useMemo(() => {
+  // Map of anchorMonth → delta; months with no settle data are absent
+  const deltaByMonth = useMemo(() => {
     const map: Record<string, number> = {};
-    outrights.forEach((o) => { map[o.anchorMonth.toUpperCase()] = o.price; });
+    outrights.forEach((o) => { if (o.delta !== null) map[o.anchorMonth.toUpperCase()] = o.delta; });
     return map;
   }, [outrights]);
 
@@ -99,14 +103,14 @@ export default function DeltaMatrix() {
         for (let i = 0; i < legs.length; i++) {
           const mk = addMonthsToAnchor(anchor.anchorMonth, i);
           if (!mk) return null;
-          const p = priceByMonth[mk.toUpperCase()];
+          const p = deltaByMonth[mk.toUpperCase()];
           if (p === undefined) return null;
           val += legs[i] * p;
         }
         return Math.round(val * 100) / 100;
       }),
     }));
-  }, [strategies, outrights, priceByMonth]);
+  }, [strategies, outrights, deltaByMonth]);
 
   const maxAbs = useMemo(() => {
     let m = 0.001;

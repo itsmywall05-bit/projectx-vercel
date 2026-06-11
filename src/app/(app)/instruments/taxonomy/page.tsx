@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Select from "@/components/ui/Select";
-import { 
-    TaxonomyStrategy as Strategy, 
-    BUILT_IN, 
-    loadCustoms, 
-    saveCustoms, 
-    SK 
+import {
+    TaxonomyStrategy as Strategy,
+    BUILT_IN,
+    loadCustoms,
+    createCustom,
+    updateCustom,
+    deleteCustom,
 } from "@/lib/taxonomy";
 
 type Operand = {
@@ -972,37 +973,37 @@ export default function StrategyTaxonomyPage() {
     ];
 
     async function handleSave(entry: Strategy) {
-        const next = [...customs.filter((c) => c.id !== entry.id), entry];
-        setCustoms(next);
-        await saveCustoms(next);
+        const saved = await createCustom(entry);
+        if (saved) setCustoms((prev) => [...prev.filter((c) => c.id !== entry.id), saved]);
     }
 
     async function handleDelete(id: string) {
-        const next = customs.filter((c) => c.id !== id);
-        setCustoms(next);
-        await saveCustoms(next);
+        await deleteCustom(id);
+        setCustoms((prev) => prev.filter((c) => c.id !== id));
     }
 
     async function handleDiffChange(id: string, val: string) {
         const existing = customs.find((c) => c.id === id);
         const bi = BUILT_IN.find((s) => s.id === id);
-        let next: Strategy[];
-        if (existing) next = customs.map((c) => (c.id === id ? { ...c, diff_form: val } : c));
-        else if (bi) next = [...customs, { ...bi, diff_form: val, fill_form: "", custom: true, tier: bi.tier ?? null }];
-        else return;
-        setCustoms(next);
-        await saveCustoms(next);
+        if (existing) {
+            const saved = await updateCustom(id, { diff_form: val });
+            if (saved) setCustoms((prev) => prev.map((c) => (c.id === id ? saved : c)));
+        } else if (bi) {
+            const saved = await createCustom({ ...bi, diff_form: val, fill_form: "", custom: true, tier: bi.tier ?? null });
+            if (saved) setCustoms((prev) => [...prev, saved]);
+        }
     }
 
     async function handleStoreFill(id: string, txt: string) {
         const existing = customs.find((c) => c.id === id);
         const bi = BUILT_IN.find((s) => s.id === id);
-        let next: Strategy[];
-        if (existing) next = customs.map((c) => (c.id === id ? { ...c, fill_form: txt } : c));
-        else if (bi) next = [...customs, { ...bi, fill_form: txt, diff_form: "", custom: true, tier: bi.tier ?? null }];
-        else return;
-        setCustoms(next);
-        await saveCustoms(next);
+        if (existing) {
+            const saved = await updateCustom(id, { fill_form: txt });
+            if (saved) setCustoms((prev) => prev.map((c) => (c.id === id ? saved : c)));
+        } else if (bi) {
+            const saved = await createCustom({ ...bi, fill_form: txt, diff_form: "", custom: true, tier: bi.tier ?? null });
+            if (saved) setCustoms((prev) => [...prev, saved]);
+        }
     }
 
     const TABS = [
@@ -1032,7 +1033,7 @@ export default function StrategyTaxonomyPage() {
                 </div>
                 <div style={{ fontSize: 10, color: C.text3, fontFamily: C.mono, textAlign: "right", lineHeight: 1.9 }}>
                     <div>{strategies.length} strategies * {strategies.filter((s) => s.custom).length} custom</div>
-                    <div style={{ color: C.green }}>* memory active</div>
+                    <div style={{ color: C.green }}>* DB active</div>
                 </div>
             </div>
             <div style={{ background: C.bg1, borderBottom: `1px solid ${C.border}`, padding: "0 22px", display: "flex" }}>

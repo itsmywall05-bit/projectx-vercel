@@ -49,7 +49,14 @@ export async function getTradingRules(): Promise<TradingRule[]> {
 }
 
 export async function getChecklistItems(): Promise<ChecklistItem[]> {
-  return fetchOrSeed<ChecklistItem>("checklist_items", { column: "position" }, SEED_CHECKLIST);
+  const items = await fetchOrSeed<ChecklistItem>("checklist_items", { column: "position" }, SEED_CHECKLIST);
+  // Remove duplicate entries (same text) — keep first occurrence by position
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    if (seen.has(item.text)) return false;
+    seen.add(item.text);
+    return true;
+  });
 }
 
 export async function getStrategies(): Promise<Strategy[]> {

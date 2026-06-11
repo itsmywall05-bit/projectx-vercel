@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLivePrices } from "@/hooks/useLivePrices";
+import { calcOpenPnl } from "@/lib/pricing";
 import { Card, StatCard, PageIntro, SectionHeader, Select } from "@/components/ui";
 
 type TradeRecord = {
@@ -63,9 +64,11 @@ export default function RiskConsolePage() {
 
   const enrichedTrades = useMemo(() => {
     return trades.map((trade) => {
-      const mark = getInstrumentPrice(trade.instrument, trade.product ?? "") ?? trade.entry_price;
-      const directionFactor = trade.direction?.toLowerCase() === "long" ? 1 : -1;
-      const pnl = Number(((mark - trade.entry_price) * trade.size_contracts * directionFactor).toFixed(2));
+      const rawMark = getInstrumentPrice(trade.instrument, trade.product ?? "") ?? trade.entry_price;
+      const mark = Math.round(rawMark * 100) / 100;
+      const tickSize = trade.products?.tick_size || 1;
+      const tickValue = trade.products?.tick_value || 1;
+      const pnl = calcOpenPnl(trade.entry_price, mark, trade.direction ?? "long", tickSize, tickValue, trade.size_contracts);
       return {
         id: trade.id,
         symbol: trade.instrument,

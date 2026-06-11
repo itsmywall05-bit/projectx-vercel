@@ -44,37 +44,67 @@ export const BUILT_IN: TaxonomyStrategy[] = [
     diff_form: "",
 }));
 
-export const SK = "strat-catalog-v4";
+function normalizeRow(c: Record<string, unknown>): TaxonomyStrategy {
+    return {
+        id: String(c.id ?? ""),
+        sym: String(c.sym ?? ""),
+        name: String(c.name ?? ""),
+        rule: String(c.rule ?? ""),
+        tier: typeof c.tier === "number" ? c.tier : null,
+        legs: Array.isArray(c.legs) ? (c.legs as unknown[]).map((v) => Number(v) || 0) : [],
+        custom: true,
+        fill_form: String(c.fill_form ?? ""),
+        diff_form: String(c.diff_form ?? ""),
+    };
+}
 
 export async function loadCustoms(): Promise<TaxonomyStrategy[]> {
-    if (typeof window === "undefined") return [];
     try {
-        const raw = localStorage.getItem(SK);
-        if (!raw) return [];
-        const parsed = JSON.parse(raw) as Partial<TaxonomyStrategy>[];
-        return parsed
-            .map((c) => ({
-                id: String(c.id ?? ""),
-                sym: String(c.sym ?? ""),
-                name: String(c.name ?? ""),
-                rule: String(c.rule ?? ""),
-                tier: c.tier ?? null,
-                legs: Array.isArray(c.legs) ? c.legs.map((v) => Number(v) || 0) : [],
-                custom: c.custom ?? true,
-                fill_form: String(c.fill_form ?? ""),
-                diff_form: String(c.diff_form ?? ""),
-            }))
-            .filter((c) => c.id && c.sym);
+        const base = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000");
+        const res = await fetch(`${base}/api/taxonomy`, { cache: "no-store" });
+        if (!res.ok) return [];
+        const data = await res.json() as Record<string, unknown>[];
+        return data.filter((c) => c.id && c.sym).map(normalizeRow);
     } catch {
         return [];
     }
 }
 
-export async function saveCustoms(c: TaxonomyStrategy[]) {
-    if (typeof window === "undefined") return;
+export async function createCustom(strategy: Omit<TaxonomyStrategy, "custom"> & { id: string }): Promise<TaxonomyStrategy | null> {
     try {
-        localStorage.setItem(SK, JSON.stringify(c));
-    } catch { }
+        const res = await fetch("/api/taxonomy", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(strategy),
+        });
+        if (!res.ok) return null;
+        return normalizeRow(await res.json() as Record<string, unknown>);
+    } catch {
+        return null;
+    }
+}
+
+export async function updateCustom(id: string, fields: Partial<Omit<TaxonomyStrategy, "id" | "custom">>): Promise<TaxonomyStrategy | null> {
+    try {
+        const res = await fetch("/api/taxonomy", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id, ...fields }),
+        });
+        if (!res.ok) return null;
+        return normalizeRow(await res.json() as Record<string, unknown>);
+    } catch {
+        return null;
+    }
+}
+
+export async function deleteCustom(id: string): Promise<boolean> {
+    try {
+        const res = await fetch(`/api/taxonomy?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+        return res.ok;
+    } catch {
+        return false;
+    }
 }
 
 export async function getAllStrategies(): Promise<TaxonomyStrategy[]> {

@@ -40,3 +40,4 @@ export default function CurvePlot({ points, height = 140 }: { points: Point[]; h
         </svg>
     );
 }
+``

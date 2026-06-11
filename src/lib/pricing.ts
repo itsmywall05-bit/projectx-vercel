@@ -161,3 +161,20 @@ export function getLivePriceForTrade(
 export async function loadPricingStrategies() {
     return getAllStrategies();
 }
+
+/**
+ * Shared open-trade P&L calculation used by risk console, live risk engine, etc.
+ * Uses tick_size/tick_value so the result is in dollars.
+ */
+export function calcOpenPnl(
+    entryPrice: number,
+    markPrice: number,
+    direction: string,
+    tickSize: number,
+    tickValue: number,
+    sizeContracts: number,
+): number {
+    const dir = direction.toLowerCase() === "long" ? 1 : -1;
+    const ticks = ((markPrice - entryPrice) / tickSize) * dir;
+    return Math.round(ticks * tickValue * sizeContracts * 100) / 100;
+}

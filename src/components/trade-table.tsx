@@ -162,7 +162,7 @@ export default function TradeTable({ trades, onEdit, onDelete, filters, onFilter
                                             <td className="px-4 py-3 text-sm border-b border-border font-mono">
                                                 {t.exit_price ? <span className="text-muted">—</span> : (
                                                     <span className="text-accent font-semibold">
-                                                        {getInstrumentPrice(t.instrument, t.product) ?? <span className="text-muted text-xs">no price</span>}
+                                                        {(() => { const p = getInstrumentPrice(t.instrument, t.product); return p !== undefined ? p.toFixed(2) : <span className="text-muted text-xs">no price</span>; })()}
                                                     </span>
                                                 )}
                                             </td>
