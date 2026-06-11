@@ -70,7 +70,7 @@ export async function loadCustoms(): Promise<TaxonomyStrategy[]> {
     }
 }
 
-export async function createCustom(strategy: Omit<TaxonomyStrategy, "custom"> & { id: string }): Promise<TaxonomyStrategy | null> {
+export async function createCustom(strategy: TaxonomyStrategy): Promise<TaxonomyStrategy | null> {
     try {
         const res = await fetch("/api/taxonomy", {
             method: "POST",
