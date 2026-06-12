@@ -28,8 +28,8 @@ export default function RiskConsolePage() {
   const [error, setError] = useState<string | null>(null);
   const [riskAmount, setRiskAmount] = useState<number>(100);
   const [selectedProduct, setSelectedProduct] = useState<string>("");
-  const [entryPrice, setEntryPrice] = useState<number>(0);
-  const [exitPrice, setExitPrice] = useState<number>(0);
+  const [entryPrice, setEntryPrice] = useState<string>("");
+  const [exitPrice, setExitPrice] = useState<string>("");
   const [allProducts, setAllProducts] = useState<{ code: string; tick_size: number; tick_value: number }[]>([]);
 
   // Live prices + derived instrument pricing from the shared hook
@@ -100,8 +100,10 @@ export default function RiskConsolePage() {
   );
 
   const maxLots = useMemo(() => {
-    if (!selectedProductMeta || !entryPrice || !exitPrice || riskAmount <= 0) return 0;
-    const ticks = Math.abs(entryPrice - exitPrice) / (selectedProductMeta.tick_size || 0.01);
+    const ep = parseFloat(entryPrice);
+    const xp = parseFloat(exitPrice);
+    if (!selectedProductMeta || !ep || !xp || riskAmount <= 0) return 0;
+    const ticks = Math.abs(ep - xp) / (selectedProductMeta.tick_size || 0.01);
     if (ticks === 0) return 0;
     const riskPerContract = ticks * (selectedProductMeta.tick_value || 1);
     return riskPerContract === 0 ? 0 : Math.floor(riskAmount / riskPerContract);
@@ -220,11 +222,11 @@ export default function RiskConsolePage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm mb-1" style={{ color: "var(--muted)" }}>Entry Price</label>
-                <input type="number" className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none" style={{ backgroundColor: "var(--bg3)" }} value={entryPrice || ""} onChange={(e) => setEntryPrice(Number(e.target.value))} />
+                <input type="text" inputMode="decimal" className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none" style={{ backgroundColor: "var(--bg3)" }} value={entryPrice} onChange={(e) => setEntryPrice(e.target.value)} />
               </div>
               <div>
                 <label className="block text-sm mb-1" style={{ color: "var(--muted)" }}>Exit (Stop) Price</label>
-                <input type="number" className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none" style={{ backgroundColor: "var(--bg3)" }} value={exitPrice || ""} onChange={(e) => setExitPrice(Number(e.target.value))} />
+                <input type="text" inputMode="decimal" className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none" style={{ backgroundColor: "var(--bg3)" }} value={exitPrice} onChange={(e) => setExitPrice(e.target.value)} />
               </div>
             </div>
             <div className="pt-4 border-t border-border mt-6">

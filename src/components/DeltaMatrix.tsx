@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BUILT_IN } from "@/lib/taxonomy";
+import TaxonomyDropdown from "@/components/ui/TaxonomyDropdown";
 import { useLivePrices } from "@/hooks/useLivePrices";
 import { addMonthsToAnchor } from "@/lib/pricing";
 import { Card, SectionHeader } from "@/components/ui";
@@ -39,9 +39,9 @@ interface Outright {
 }
 
 export default function DeltaMatrix() {
-  const { rawPrices } = useLivePrices();
+  const { rawPrices, strategies: allStrategies } = useLivePrices();
   const [selectedProduct, setSelectedProduct] = useState("CL");
-  const [maxTier, setMaxTier] = useState(3);
+  const [selectedIds, setSelectedIds] = useState<string[]>(["S", "F", "FF", "D"]);
 
   const products = useMemo(() => {
     const set = new Set<string>();
@@ -84,13 +84,23 @@ export default function DeltaMatrix() {
     return map;
   }, [outrights]);
 
-  // Max tier possible given how many outrights exist: tier T needs T+2 legs
   const maxPossibleTier = Math.max(0, outrights.length - 2);
-  const effectiveTier = Math.min(maxTier, maxPossibleTier);
+  const availableStrategies = useMemo(() => {
+    const seen = new Set<string>();
+    return allStrategies.filter((s) => {
+      const effectiveTier = s.tier ?? (s.legs.length - 2);
+      if (effectiveTier < 0 || effectiveTier > maxPossibleTier) return false;
+      if (seen.has(s.id)) return false;
+      seen.add(s.id);
+      return true;
+    });
+  }, [allStrategies, maxPossibleTier]);
 
   const strategies = useMemo(
-    () => BUILT_IN.filter((s) => s.tier !== null && s.tier <= effectiveTier),
-    [effectiveTier],
+    () => selectedIds.length === 0
+      ? availableStrategies
+      : availableStrategies.filter((s) => selectedIds.includes(s.id)),
+    [availableStrategies, selectedIds],
   );
 
   const matrix = useMemo(() => {
@@ -118,11 +128,6 @@ export default function DeltaMatrix() {
     return m;
   }, [matrix]);
 
-  const tierOptions = Array.from(
-    { length: Math.min(maxPossibleTier + 1, BUILT_IN.length) },
-    (_, tier) => ({ tier, label: BUILT_IN.filter((s) => s.tier !== null && s.tier <= tier).map((s) => s.sym).join("  ") }),
-  );
-
   return (
     <Card>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
@@ -141,18 +146,15 @@ export default function DeltaMatrix() {
               ))}
             </select>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs" style={{ color: "var(--muted)" }}>Tiers</span>
-            <select
-              value={maxTier}
-              onChange={(e) => setMaxTier(Number(e.target.value))}
-              className="border border-border rounded px-2 py-1 text-sm focus:outline-none"
-              style={{ backgroundColor: "var(--bg3)" }}
-            >
-              {tierOptions.map(({ tier, label }) => (
-                <option key={tier} value={tier}>{label}</option>
-              ))}
-            </select>
+          <div className="flex items-center gap-1.5" style={{ minWidth: 180 }}>
+            <span className="text-xs shrink-0" style={{ color: "var(--muted)" }}>Structures</span>
+            <TaxonomyDropdown
+              multi
+              value={selectedIds}
+              onChange={setSelectedIds}
+              strategies={availableStrategies}
+              placeholder="All"
+            />
           </div>
         </div>
       </div>
@@ -179,7 +181,7 @@ export default function DeltaMatrix() {
                 {matrix.map(({ strat, cells }) => (
                   <tr key={strat.id}>
                     <td className="pr-3 py-px text-right font-semibold" style={{ color: "var(--accent)" }}>
-                      {strat.sym}
+                      {strat.id}
                     </td>
                     {cells.map((v, i) => (
                       <td

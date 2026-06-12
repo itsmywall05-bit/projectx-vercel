@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Select from "@/components/ui/Select";
-import { TaxonomyStrategy, getAllStrategies, getTowers } from "@/lib/taxonomy";
+import TaxonomyDropdown from "@/components/ui/TaxonomyDropdown";
+import { TaxonomyStrategy, getAllStrategies } from "@/lib/taxonomy";
 
 interface Product {
     code: string;
@@ -76,7 +77,7 @@ export default function TradeForm({ editTrade, onSaved, onCancel }: TradeFormPro
     const [form, setForm] = useState<TradeFormData>(EMPTY_FORM);
     const [products, setProducts] = useState<Product[]>([]);
     const [dbStrategies, setDbStrategies] = useState<Strategy[]>([]);
-    const [towers, setTowers] = useState<string[]>(["Outright", "Spread", "Fly", "Condor"]);
+    const [taxonomyStrategies, setTaxonomyStrategies] = useState<TaxonomyStrategy[]>([]);
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
@@ -92,13 +93,7 @@ export default function TradeForm({ editTrade, onSaved, onCancel }: TradeFormPro
             if (!data.error) setDbStrategies(Array.isArray(data) ? data : []);
         });
 
-        // Load Taxonomy Towers for Type Dropdown
-        async function loadTowers() {
-            const strats = await getAllStrategies();
-            const towerMap = getTowers(strats);
-            setTowers(["Outright", ...Object.keys(towerMap)]);
-        }
-        loadTowers();
+        getAllStrategies().then(setTaxonomyStrategies);
     }, []);
 
     useEffect(() => {
@@ -132,8 +127,6 @@ export default function TradeForm({ editTrade, onSaved, onCancel }: TradeFormPro
         { value: "", label: "Select" },
         ...products.map((p) => ({ value: p.code, label: p.code })),
     ];
-
-    const typeOptions = towers.map(t => ({ value: t, label: t }));
 
     const strategyOptions = [
         { value: "", label: "Select" },
@@ -222,10 +215,12 @@ export default function TradeForm({ editTrade, onSaved, onCancel }: TradeFormPro
                 </div>
                 <div>
                     <label className={labelCls}>Type</label>
-                    <Select
+                    <TaxonomyDropdown
                         value={form.instrument_type}
-                        onChange={(value) => set("instrument_type", value)}
-                        options={typeOptions}
+                        onChange={(value) => set("instrument_type", value as string)}
+                        strategies={taxonomyStrategies}
+                        withOutright
+                        placeholder="Select type"
                     />
                 </div>
                 <div>

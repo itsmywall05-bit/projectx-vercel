@@ -1,5 +1,6 @@
 import React from "react";
 export { default as Select } from "./Select";
+export { default as TaxonomyDropdown } from "./TaxonomyDropdown";
 
 // ─── StatCard ───────────────────────────────────────────────────
 type StatVariant = "at" | "tt" | "rt" | "amt" | "bt" | "pt" | "ct";

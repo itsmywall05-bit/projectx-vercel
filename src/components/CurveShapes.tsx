@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { BUILT_IN, type TaxonomyStrategy } from "@/lib/taxonomy";
+import type { TaxonomyStrategy } from "@/lib/taxonomy";
 import { useLivePrices } from "@/hooks/useLivePrices";
 import { addMonthsToAnchor } from "@/lib/pricing";
 import { Card, SectionHeader } from "@/components/ui";
+import TaxonomyDropdown from "@/components/ui/TaxonomyDropdown";
 
 const FUTURES_CODE: Record<string, string> = {
   JAN: "F", FEB: "G", MAR: "H", APR: "J", MAY: "K", JUN: "M",
@@ -70,7 +71,7 @@ function StructureCurve({ strat, points }: { strat: TaxonomyStrategy; points: Cu
   return (
     <div>
       <div className="flex items-center gap-1.5 mb-0.5">
-        <span className="font-semibold font-mono" style={{ fontSize: 10, color: "var(--accent)" }}>{strat.sym}</span>
+        <span className="font-semibold font-mono" style={{ fontSize: 10, color: "var(--accent)" }}>{strat.id}</span>
         <span style={{ fontSize: 10, color: "var(--muted)" }}>{strat.name}</span>
       </div>
       <svg ref={svgRef} width="100%" viewBox={`0 0 ${W} ${H}`} style={{ overflow: "visible" }}>
@@ -148,10 +149,9 @@ function StructureCurve({ strat, points }: { strat: TaxonomyStrategy; points: Cu
 }
 
 export default function CurveShapes({ product = "CL" }: { product?: string }) {
-  const { rawPrices } = useLivePrices();
+  const { rawPrices, strategies: allStrategies } = useLivePrices();
 
-  // Default: show S and F
-  const [selected, setSelected] = useState<Set<string>>(() => new Set(["S", "F"]));
+  const [selectedIds, setSelectedIds] = useState<string[]>(["S", "F"]);
 
   const outrights = useMemo((): Outright[] => {
     const seen = new Set<string>();
@@ -179,9 +179,18 @@ export default function CurveShapes({ product = "CL" }: { product?: string }) {
   }, [outrights]);
 
   const maxPossibleTier = Math.max(0, outrights.length - 2);
-  const availableStrategies = BUILT_IN.filter((s) => s.tier !== null && s.tier <= maxPossibleTier);
+  const availableStrategies = useMemo(() => {
+    const seen = new Set<string>();
+    return allStrategies.filter((s) => {
+      const effectiveTier = s.tier ?? (s.legs.length - 2);
+      if (effectiveTier < 0 || effectiveTier > maxPossibleTier) return false;
+      if (seen.has(s.id)) return false;
+      seen.add(s.id);
+      return true;
+    });
+  }, [allStrategies, maxPossibleTier]);
 
-  // Derive curve points for a given strategy
+  // Derive curve points keyed by strategy id (not sym — multiple strategies can share a tower)
   const curvePoints = useMemo((): Map<string, CurvePoint[]> => {
     const result = new Map<string, CurvePoint[]>();
     availableStrategies.forEach((strat) => {
@@ -199,40 +208,27 @@ export default function CurveShapes({ product = "CL" }: { product?: string }) {
         }
         pts.push({ code: anchor.code, value: Math.round(val * 10000) / 10000 });
       });
-      result.set(strat.sym, pts);
+      result.set(strat.id, pts);
     });
     return result;
   }, [availableStrategies, outrights, lastByMonth]);
 
-  function toggleStrategy(sym: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      next.has(sym) ? next.delete(sym) : next.add(sym);
-      return next;
-    });
-  }
-
-  const selectedStrategies = availableStrategies.filter((s) => selected.has(s.sym));
+  const selectedStrategies = selectedIds.length === 0
+    ? availableStrategies
+    : availableStrategies.filter((s) => selectedIds.includes(s.id));
 
   return (
     <Card>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <SectionHeader title={`${product} Curve Shapes`} />
-        <div className="flex flex-wrap gap-2">
-          {availableStrategies.map((s) => (
-            <button
-              key={s.sym}
-              onClick={() => toggleStrategy(s.sym)}
-              className="px-2.5 py-1 rounded text-xs font-mono font-semibold border transition-colors"
-              style={{
-                borderColor: selected.has(s.sym) ? "var(--accent)" : "var(--border)",
-                backgroundColor: selected.has(s.sym) ? "rgba(var(--accent-rgb,45,212,191),0.12)" : "var(--bg3)",
-                color: selected.has(s.sym) ? "var(--accent)" : "var(--muted)",
-              }}
-            >
-              {s.sym}
-            </button>
-          ))}
+        <div style={{ minWidth: 180 }}>
+          <TaxonomyDropdown
+            multi
+            value={selectedIds}
+            onChange={setSelectedIds}
+            strategies={availableStrategies}
+            placeholder="All structures"
+          />
         </div>
       </div>
 
@@ -248,9 +244,9 @@ export default function CurveShapes({ product = "CL" }: { product?: string }) {
         <div className="flex flex-col gap-2">
           {selectedStrategies.map((strat) => (
             <StructureCurve
-              key={strat.sym}
+              key={strat.id}
               strat={strat}
-              points={curvePoints.get(strat.sym) ?? []}
+              points={curvePoints.get(strat.id) ?? []}
             />
           ))}
         </div>
