@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { BacklogItem } from "@/lib/data/types";
 
 const PRIORITY_COLOR: Record<string, string> = {
@@ -23,6 +23,14 @@ export default function BacklogList({ items: initialItems }: { items: BacklogIte
   const [items, setItems] = useState<BacklogItem[]>(initialItems);
   const [toggling, setToggling] = useState<string | null>(null);
   const [selectedTag, setSelectedTag] = useState<string>("");
+
+  // Fetch real DB data on mount — bypasses server-side seed fallback
+  useEffect(() => {
+    fetch("/api/backlog")
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data) && data.length > 0) setItems(data as BacklogItem[]); })
+      .catch(() => {});
+  }, []);
 
   const allTags = useMemo(() => {
     const set = new Set<string>();

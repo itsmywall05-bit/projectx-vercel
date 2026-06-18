@@ -71,6 +71,11 @@ export default function RiskConsolePage() {
       const tickSize = trade.products?.tick_size || 1;
       const tickValue = trade.products?.tick_value || 1;
       const pnl = calcOpenPnl(trade.entry_price, mark, trade.direction ?? "long", tickSize, tickValue, trade.size_contracts);
+      // SL-based risk: dollar distance from entry to stop × size
+      const sl = trade.sl_price ?? null;
+      const slRisk = sl !== null
+        ? Math.abs((trade.entry_price - sl) / tickSize) * tickValue * trade.size_contracts
+        : null;
       return {
         id: trade.id,
         symbol: trade.instrument,
@@ -79,6 +84,7 @@ export default function RiskConsolePage() {
         entry: trade.entry_price,
         mark,
         pnl,
+        slRisk,
         openedAt: trade.date || trade.created_at || "",
       };
     });
@@ -86,7 +92,8 @@ export default function RiskConsolePage() {
 
   const summary = useMemo(() => {
     const capitalDeployed = enrichedTrades.reduce((s, t) => s + Math.abs(t.entry * t.size), 0);
-    const riskInMarket = enrichedTrades.reduce((s, t) => s + Math.abs(t.pnl), 0);
+    // Sum SL-based risk for trades that have a stop; fall back to |pnl| for those without
+    const riskInMarket = enrichedTrades.reduce((s, t) => s + (t.slRisk ?? Math.abs(t.pnl)), 0);
     return {
       openPositions: enrichedTrades.length,
       capitalDeployed,

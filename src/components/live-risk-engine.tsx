@@ -31,11 +31,12 @@ export default function LiveRiskEngine({ trades }: { trades: Trade[] }) {
         let totalOpen = 0, totalCurr = 0, totalMax = 0, nearLimitCount = 0;
         openTrades.forEach((t) => {
             const mark = getInstrumentPrice(t.instrument, t.product) ?? t.entry_price;
-            const sl = t.sl_price || 0;
+            const sl = t.sl_price ?? null;
             const tickSize = t.products?.tick_size || 1;
             const tickValue = t.products?.tick_value || 1;
-            const openRisk = Math.abs((sl - t.entry_price) / tickSize) * tickValue * t.size_contracts;
-            const currRisk = Math.abs((sl - mark) / tickSize) * tickValue * t.size_contracts;
+            if (sl === null) return;
+            const openRisk = Math.abs((t.entry_price - sl) / tickSize) * tickValue * t.size_contracts;
+            const currRisk = Math.abs((mark - sl) / tickSize) * tickValue * t.size_contracts;
             const maxRisk = Math.max(openRisk, currRisk);
             totalOpen += openRisk;
             totalCurr += currRisk;
@@ -85,7 +86,7 @@ export default function LiveRiskEngine({ trades }: { trades: Trade[] }) {
                     <table className="w-full border-collapse min-w-[900px]">
                         <thead>
                             <tr className="bg-bg4">
-                                {["Instrument", "Dir / Size", "Entry", "SL", "Mark", "Open Risk", "Curr Risk", "Max Risk", "Risk Lt"].map((h, i) => (
+                                {["Instrument", "Dir / Size", "Entry", "SL", "Mark", "Open Risk", "Curr Risk", "Max Risk", "Risk Lt", "Max Lots"].map((h, i) => (
                                     <th key={h} className={`text-xs tracking-wider uppercase text-muted py-3 px-4 border-b border-border font-semibold ${i >= 5 ? "text-right" : "text-left"}`}>{h}</th>
                                 ))}
                             </tr>
@@ -93,13 +94,20 @@ export default function LiveRiskEngine({ trades }: { trades: Trade[] }) {
                         <tbody>
                             {openTrades.map((t) => {
                                 const mark = getInstrumentPrice(t.instrument, t.product) ?? t.entry_price;
-                                const sl = t.sl_price || 0;
+                                const sl = t.sl_price ?? null;
                                 const tickSize = t.products?.tick_size || 1;
                                 const tickValue = t.products?.tick_value || 1;
-                                const openRisk = ((sl - t.entry_price) / tickSize) * tickValue * t.size_contracts;
-                                const currRisk = ((sl - mark) / tickSize) * tickValue * t.size_contracts;
-                                const maxRisk = Math.max(openRisk, currRisk);
-                                const nearLimit = t.risk_lt ? maxRisk >= t.risk_lt * 0.8 : false;
+
+                                const openRisk = sl !== null ? Math.abs((t.entry_price - sl) / tickSize) * tickValue * t.size_contracts : null;
+                                const currRisk = sl !== null ? Math.abs((mark - sl) / tickSize) * tickValue * t.size_contracts : null;
+                                const maxRisk = openRisk !== null && currRisk !== null ? Math.max(openRisk, currRisk) : null;
+                                const nearLimit = t.risk_lt && maxRisk !== null ? maxRisk >= t.risk_lt * 0.8 : false;
+
+                                // Max lots: how many contracts fit within risk_lt at the entry→SL distance
+                                const riskPerLot = sl !== null ? Math.abs((t.entry_price - sl) / tickSize) * tickValue : null;
+                                const maxLots = t.risk_lt && riskPerLot && riskPerLot > 0
+                                    ? Math.floor(t.risk_lt / riskPerLot)
+                                    : null;
 
                                 return (
                                     <tr key={t.id} className={`hover:bg-bg4 transition-colors ${nearLimit ? "bg-amber/5" : ""}`}>
@@ -109,12 +117,15 @@ export default function LiveRiskEngine({ trades }: { trades: Trade[] }) {
                                             <span className="text-muted ml-2">x{t.size_contracts}</span>
                                         </td>
                                         <td className="px-4 py-3 text-sm text-text2 border-b border-border">{t.entry_price}</td>
-                                        <td className="px-4 py-3 text-sm text-red font-medium border-b border-border">{sl || "—"}</td>
+                                        <td className="px-4 py-3 text-sm text-red font-medium border-b border-border">{sl ?? "—"}</td>
                                         <td className="px-4 py-3 text-sm font-bold text-accent border-b border-border">{mark.toFixed(2)}</td>
-                                        <td className="px-4 py-3 text-sm text-right font-medium border-b border-border">{openRisk.toFixed(2)}</td>
-                                        <td className="px-4 py-3 text-sm text-right font-bold text-amber border-b border-border">{currRisk.toFixed(2)}</td>
-                                        <td className="px-4 py-3 text-sm text-right font-medium text-text2 border-b border-border">{maxRisk.toFixed(2)}</td>
-                                        <td className="px-4 py-3 text-sm text-right font-semibold border-b border-border">{t.risk_lt || "—"}</td>
+                                        <td className="px-4 py-3 text-sm text-right font-medium border-b border-border">{openRisk !== null ? openRisk.toFixed(2) : "—"}</td>
+                                        <td className="px-4 py-3 text-sm text-right font-bold text-amber border-b border-border">{currRisk !== null ? currRisk.toFixed(2) : "—"}</td>
+                                        <td className="px-4 py-3 text-sm text-right font-medium text-text2 border-b border-border">{maxRisk !== null ? maxRisk.toFixed(2) : "—"}</td>
+                                        <td className="px-4 py-3 text-sm text-right font-semibold border-b border-border">{t.risk_lt ?? "—"}</td>
+                                        <td className="px-4 py-3 text-sm text-right font-semibold border-b border-border" style={{ color: maxLots !== null ? "var(--accent)" : "var(--muted)" }}>
+                                            {maxLots !== null ? maxLots : "—"}
+                                        </td>
                                     </tr>
                                 );
                             })}
