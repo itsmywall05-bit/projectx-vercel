@@ -148,12 +148,15 @@ const C = {
 };
 
 function MiniBar({ legs, h = 34 }: { legs: number[]; h?: number }) {
-    if (!legs || !legs.length) return null;
-    const mx = Math.max(...legs.map(Math.abs), 1);
+    const nonZero = (legs || []).filter((v) => v !== 0);
+    if (!nonZero.length) return null;
+    const mx = Math.max(...nonZero.map(Math.abs), 1);
     return (
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: h, flexShrink: 0 }}>
-            {legs.map((w, i) => {
-                if (w === 0) return <div key={i} style={{ width: 9, height: h }} />;
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 1, height: h, flexShrink: 0 }}>
+            {(legs || []).map((w, i) => {
+                if (w === 0) {
+                    return <div key={i} style={{ width: 3, height: h, flexShrink: 0 }} />;
+                }
                 const ph = Math.max(2, Math.round((Math.abs(w) / mx) * (h - 2)));
                 return (
                     <div
@@ -344,6 +347,8 @@ function SH({ children }: { children: React.ReactNode }) {
     );
 }
 
+const DELETE_PASSWORD = "delete";
+
 function CatalogTab({
     strategies,
     onDelete,
@@ -354,6 +359,11 @@ function CatalogTab({
     onDiffChange: (id: string, val: string) => void;
 }) {
     const [q, setQ] = useState("");
+    const [expanded, setExpanded] = useState<Set<string>>(new Set());
+    const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+    const [deletePass, setDeletePass] = useState("");
+    const [deleteErr, setDeleteErr] = useState(false);
+
     const vis = strategies.filter(
         (s) =>
             !q ||
@@ -366,6 +376,34 @@ function CatalogTab({
         (towers[s.sym] = towers[s.sym] || []).push(s);
     });
 
+    function toggleTower(sym: string) {
+        setExpanded((prev) => {
+            const next = new Set(prev);
+            next.has(sym) ? next.delete(sym) : next.add(sym);
+            return next;
+        });
+    }
+
+    function initiateDelete(id: string) {
+        setDeleteTarget(id);
+        setDeletePass("");
+        setDeleteErr(false);
+    }
+
+    function confirmDelete() {
+        if (deletePass !== DELETE_PASSWORD) { setDeleteErr(true); return; }
+        if (deleteTarget) onDelete(deleteTarget);
+        setDeleteTarget(null);
+        setDeletePass("");
+        setDeleteErr(false);
+    }
+
+    function cancelDelete() {
+        setDeleteTarget(null);
+        setDeletePass("");
+        setDeleteErr(false);
+    }
+
     return (
         <div>
             <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14 }}>
@@ -374,6 +412,47 @@ function CatalogTab({
                     {vis.length} strategies * {Object.keys(towers).length} towers
                 </span>
             </div>
+
+            {deleteTarget !== null && (
+                <div style={{
+                    background: C.redDim,
+                    border: `1px solid ${C.red}55`,
+                    borderRadius: 8,
+                    padding: "10px 14px",
+                    marginBottom: 14,
+                    display: "flex",
+                    gap: 10,
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                }}>
+                    <span style={{ fontFamily: C.mono, fontSize: 11, color: C.red }}>
+                        Delete <strong>{deleteTarget}</strong> — enter password:
+                    </span>
+                    <input
+                        type="password"
+                        value={deletePass}
+                        onChange={(e) => { setDeletePass(e.target.value); setDeleteErr(false); }}
+                        onKeyDown={(e) => { if (e.key === "Enter") confirmDelete(); if (e.key === "Escape") cancelDelete(); }}
+                        autoFocus
+                        placeholder="password"
+                        style={{
+                            background: C.bg3,
+                            color: C.text,
+                            border: `1px solid ${deleteErr ? C.red : C.border2}`,
+                            borderRadius: 6,
+                            padding: "4px 8px",
+                            fontFamily: C.mono,
+                            fontSize: 12,
+                            width: 130,
+                            outline: "none",
+                        }}
+                    />
+                    {deleteErr && <span style={{ fontFamily: C.mono, fontSize: 10, color: C.red }}>wrong password</span>}
+                    <Btn variant="danger" small onClick={confirmDelete}>confirm</Btn>
+                    <Btn variant="ghost" small onClick={cancelDelete}>cancel</Btn>
+                </div>
+            )}
+
             <div style={{ overflowX: "auto" }}>
                 <table style={{ borderCollapse: "collapse", fontFamily: C.mono, fontSize: 11, minWidth: 920 }}>
                     <thead>
@@ -409,84 +488,119 @@ function CatalogTab({
                         </tr>
                     </thead>
                     <tbody>
-                        {Object.entries(towers).map(([sym, group]) =>
-                            group.map((s, gi) => (
-                                <tr
-                                    key={s.id}
-                                    style={{
-                                        borderBottom: `1px solid ${C.border}`,
-                                        background: gi % 2 ? C.bg1 + "55" : "transparent",
-                                    }}
-                                >
-                                    <td style={{ padding: "7px 8px" }}>
-                                        {gi === 0 ? (
-                                            <span style={{ color: C.accent, fontWeight: 700, fontSize: 13 }}>{sym}</span>
-                                        ) : (
-                                            <span style={{ color: C.text3, paddingLeft: 8, fontSize: 11 }}>- {sym}</span>
-                                        )}
-                                    </td>
-                                    <td style={{ padding: "7px 8px", color: s.custom ? C.green : C.text, fontWeight: 600, whiteSpace: "nowrap" }}>
-                                        {s.id} {s.custom && <Bdg v="ok">c</Bdg>}
-                                    </td>
-                                    <td style={{ padding: "7px 8px", color: C.text2 }}>{s.name}</td>
-                                    <td style={{ padding: "7px 8px", color: C.text3 }}>{s.legs.length}</td>
-                                    <td style={{ padding: "7px 8px" }}>
-                                        <MiniBar legs={s.legs} h={22} />
-                                    </td>
-                                    <td
+                        {Object.entries(towers).map(([sym, group]) => {
+                            const isExpanded = expanded.has(sym);
+                            const hasChildren = group.length > 1;
+                            return group.map((s, gi) => {
+                                if (gi > 0 && !isExpanded) return null;
+                                return (
+                                    <tr
+                                        key={s.id}
                                         style={{
-                                            padding: "7px 8px",
-                                            color: C.text3,
-                                            maxWidth: 130,
-                                            overflow: "hidden",
-                                            textOverflow: "ellipsis",
-                                            whiteSpace: "nowrap",
-                                            fontSize: 10,
+                                            borderBottom: `1px solid ${C.border}`,
+                                            background: gi % 2 ? C.bg1 + "55" : "transparent",
                                         }}
-                                        title={legsStr(s.legs)}
                                     >
-                                        {legsStr(s.legs)}
-                                    </td>
-                                    <td
-                                        style={{
-                                            padding: "7px 8px",
-                                            color: C.text3,
-                                            fontSize: 10,
-                                            maxWidth: 150,
-                                            overflow: "hidden",
-                                            textOverflow: "ellipsis",
-                                            whiteSpace: "nowrap",
-                                        }}
-                                        title={s.rule}
-                                    >
-                                        {s.rule}
-                                    </td>
-                                    <td style={{ padding: "7px 8px", color: C.accent, fontSize: 10, maxWidth: 160, wordBreak: "break-word" }}>
-                                        {s.fill_form || <span style={{ color: C.text3 }}>-</span>}
-                                    </td>
-                                    <td style={{ padding: "4px 8px" }}>
-                                        <input
-                                            key={s.id + s.diff_form}
-                                            defaultValue={s.diff_form || ""}
-                                            onBlur={(e) => onDiffChange(s.id, e.target.value)}
-                                            placeholder="e.g. 2*F[1]"
+                                        <td style={{ padding: "7px 8px" }}>
+                                            {gi === 0 ? (
+                                                <span
+                                                    onClick={hasChildren ? () => toggleTower(sym) : undefined}
+                                                    style={{
+                                                        display: "inline-flex",
+                                                        alignItems: "center",
+                                                        gap: 5,
+                                                        color: C.accent,
+                                                        fontWeight: 700,
+                                                        fontSize: 13,
+                                                        cursor: hasChildren ? "pointer" : "default",
+                                                        userSelect: "none",
+                                                    }}
+                                                >
+                                                    {hasChildren && (
+                                                        <span style={{
+                                                            fontSize: 8,
+                                                            color: C.text3,
+                                                            display: "inline-block",
+                                                            transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                                                            transition: "transform 0.15s",
+                                                        }}>▶</span>
+                                                    )}
+                                                    {sym}
+                                                    {hasChildren && (
+                                                        <span style={{ fontSize: 9, color: C.text3, fontWeight: 400 }}>({group.length})</span>
+                                                    )}
+                                                </span>
+                                            ) : (
+                                                <span style={{ color: C.text3, paddingLeft: 8, fontSize: 11 }}>- {sym}</span>
+                                            )}
+                                        </td>
+                                        <td style={{ padding: "7px 8px", color: s.custom ? C.green : C.text, fontWeight: 600, whiteSpace: "nowrap" }}>
+                                            {s.id} {s.custom && <Bdg v="ok">c</Bdg>}
+                                        </td>
+                                        <td style={{ padding: "7px 8px", color: C.text2 }}>{s.name}</td>
+                                        <td style={{ padding: "7px 8px", color: C.text3 }}>{s.legs.filter((v) => v !== 0).length}</td>
+                                        <td style={{ padding: "7px 8px" }}>
+                                            <MiniBar legs={s.legs} h={22} />
+                                        </td>
+                                        <td
                                             style={{
-                                                background: C.bg3,
-                                                color: C.text,
-                                                border: `1px solid ${C.border}`,
-                                                borderRadius: 4,
-                                                padding: "3px 6px",
-                                                fontFamily: C.mono,
+                                                padding: "7px 8px",
+                                                color: C.text3,
+                                                maxWidth: 130,
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                whiteSpace: "nowrap",
                                                 fontSize: 10,
-                                                width: 148,
-                                                outline: "none",
                                             }}
-                                        />
-                                    </td>
-                                    <td style={{ padding: "7px 8px" }}>{s.custom && <Btn variant="danger" small onClick={() => onDelete(s.id)}>del</Btn>}</td>
-                                </tr>
-                            ))
-                        )}
+                                            title={legsStr(s.legs)}
+                                        >
+                                            {legsStr(s.legs)}
+                                        </td>
+                                        <td
+                                            style={{
+                                                padding: "7px 8px",
+                                                color: C.text3,
+                                                fontSize: 10,
+                                                maxWidth: 150,
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                whiteSpace: "nowrap",
+                                            }}
+                                            title={s.rule}
+                                        >
+                                            {s.rule}
+                                        </td>
+                                        <td style={{ padding: "7px 8px", color: C.accent, fontSize: 10, maxWidth: 160, wordBreak: "break-word" }}>
+                                            {s.fill_form || <span style={{ color: C.text3 }}>-</span>}
+                                        </td>
+                                        <td style={{ padding: "4px 8px" }}>
+                                            <input
+                                                key={s.id + s.diff_form}
+                                                defaultValue={s.diff_form || ""}
+                                                onBlur={(e) => onDiffChange(s.id, e.target.value)}
+                                                placeholder="e.g. 2*F[1]"
+                                                style={{
+                                                    background: C.bg3,
+                                                    color: C.text,
+                                                    border: `1px solid ${C.border}`,
+                                                    borderRadius: 4,
+                                                    padding: "3px 6px",
+                                                    fontFamily: C.mono,
+                                                    fontSize: 10,
+                                                    width: 148,
+                                                    outline: "none",
+                                                }}
+                                            />
+                                        </td>
+                                        <td style={{ padding: "7px 8px" }}>
+                                            {s.custom && (
+                                                <Btn variant="danger" small onClick={() => initiateDelete(s.id)}>del</Btn>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            });
+                        })}
                     </tbody>
                 </table>
             </div>
@@ -937,7 +1051,7 @@ function NotationTab({ strategies }: { strategies: Strategy[] }) {
                                 <td style={{ padding: "6px 8px", color: C.accent, fontWeight: 700 }}>{s.sym}</td>
                                 <td style={{ padding: "6px 8px", color: s.custom ? C.green : C.text, fontWeight: 600 }}>{s.id}</td>
                                 <td style={{ padding: "6px 8px", color: C.text2 }}>{s.name}</td>
-                                <td style={{ padding: "6px 8px", color: C.text3 }}>{s.legs.length}</td>
+                                <td style={{ padding: "6px 8px", color: C.text3 }}>{s.legs.filter((v) => v !== 0).length}</td>
                                 <td style={{ padding: "6px 8px", color: C.text3, fontSize: 10 }}>{s.rule}</td>
                                 <td style={{ padding: "6px 8px", color: C.accent, fontSize: 10 }}>{s.fill_form || "-"}</td>
                                 <td style={{ padding: "6px 8px", color: C.amber, fontSize: 10 }}>{s.diff_form || "-"}</td>
